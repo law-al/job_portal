@@ -1,0 +1,234 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum UserRole {
+  JOB_SEEKER
+  COMPANY
+  OTHER
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  CANCELLED
+}
+
+enum CompanyRole {
+  COMPANY_ADMIN
+  HR
+  RECRUITER
+  INTERVIEWER
+  OTHER
+}
+
+enum JobType {
+  FULL_TIME
+  PART_TIME
+  CONTRACT
+  INTERNSHIP
+  TEMPORARY
+  SEASONAL
+
+  REMOTE
+  HYBRID
+
+  IN_OFFICE
+  FREELANCE
+  VOLUNTEER
+  CONSULTANT
+}
+
+enum JobStatus {
+  OPEN
+  CLOSE
+}
+
+enum ExperienceLevel {
+  INTERN
+  ENTRY
+  JUNIOR
+  MID
+  SENIOR
+  LEAD
+}
+
+enum ApplicationStatus {
+  APPLIED
+  SCREENING
+  SHORTLISTED
+  INTERVIEW
+  OFFER
+  HIRED
+  REJECTED
+  WITHDRAWN
+}
+
+model User {
+  id                              String    @id @default(uuid()) @db.Uuid()
+  firstName                       String    @db.VarChar(255)
+  lastName                        String    @db.VarChar(255)
+  email                           String    @unique @db.VarChar(255)
+  password                        String    @db.VarChar(255)
+  role                            UserRole  @default(OTHER)
+  isVerified                      Boolean   @default(false)
+  isActive                        Boolean   @default(true)
+  isDeleted                       Boolean   @default(false)
+  isEmailVerified                 Boolean   @default(false)
+  isProfileCompleted              Boolean   @default(false)
+  isPasswordChanged               Boolean   @default(false)
+  passwordChangedAt               DateTime?
+  passwordResetToken              String?   @db.VarChar(255)
+  passwordResetTokenExpiresAt     DateTime?
+  emailVerificationToken          String?   @db.VarChar(255)
+  emailVerificationTokenExpiresAt DateTime?
+  createdAt                       DateTime  @default(now())
+  updatedAt                       DateTime  @updatedAt
+
+  company    UserCompany[]
+  invitee    Invitation[]
+  applicants Application[]
+
+  @@unique([id])
+  @@index([email])
+  @@map("users")
+}
+
+model Company {
+  id          String   @id @default(uuid()) @db.Uuid()
+  name        String   @db.VarChar(255)
+  createdBy   String   @db.Uuid()
+  description String   @db.Text
+  website     String   @db.VarChar(255)
+  address     String   @db.Text
+  logo        String   @db.VarChar(255)
+  isActive    Boolean  @default(true)
+  isDeleted   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  invitations Invitation[]
+  members     UserCompany[]
+  jobs        Job[]
+
+  @@unique([id])
+  @@map("companies")
+}
+
+model UserCompany {
+  id        String      @id @default(uuid()) @db.Uuid()
+  role      CompanyRole @default(OTHER)
+  userId    String      @db.Uuid()
+  companyId String      @db.Uuid()
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  user    User    @relation(fields: [userId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
+
+  applicant Application[]
+
+  @@unique([userId, companyId])
+  @@map("user_companies")
+}
+
+model Invitation {
+  id          String           @id @default(uuid()) @db.Uuid()
+  email       String           @db.VarChar(255)
+  token       String           @unique @db.VarChar(255)
+  hashedToken String           @db.VarChar(255)
+  role        CompanyRole
+  companyId   String           @db.Uuid()
+  invitedBy   String           @db.Uuid()
+  status      InvitationStatus @default(PENDING)
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user    User?   @relation(fields: [invitedBy], references: [id])
+
+  @@index([email, companyId])
+  @@index([token])
+  @@index([hashedToken])
+  @@map("invitations")
+}
+
+model Job {
+  id              String          @id @default(uuid()) @db.Uuid()
+  companyId       String          @db.Uuid()
+  slug            String          @db.VarChar(255)
+  createdBy       String          @db.Uuid()
+  title           String          @db.VarChar(255)
+  description     String          @db.Text
+  location        String          @db.VarChar(255)
+  salary_range    String?         @db.VarChar(255)
+  jobType         JobType         @default(FULL_TIME)
+  status          JobStatus       @default(OPEN)
+  experienceLevel ExperienceLevel @default(MID)
+  slot            Int?
+  isClosed        Boolean         @default(false)
+  closedAt        DateTime?
+  deadline        DateTime?
+  isRemote        Boolean         @default(false)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  company Company @relation(fields: [companyId], references: [id])
+
+  applications   Application[]
+  pipelineStages PipelineStage[]
+
+  @@unique([slug])
+  @@index([slug])
+  @@map("jobs")
+}
+
+model PipelineStage {
+  id    String @id @default(uuid()) @db.Uuid()
+  jobId String @db.Uuid
+  name  String @db.VarChar(255)
+  order Int
+
+  job          Job           @relation(fields: [jobId], references: [id])
+  applications Application[]
+
+  @@map("pipelineStages")
+}
+
+model Application {
+  id              String            @id @default(uuid()) @db.Uuid()
+  jobId           String            @db.Uuid()
+  userId          String            @db.Uuid()
+  resumeUrl       String
+  coverLetter     String            @db.Text
+  expectedSalary  Int
+  currentLocation String            @db.VarChar(255)
+  portfolioUrl    String
+  status          ApplicationStatus @default(APPLIED)
+  stageId         String            @db.Uuid()
+  assignedTo      String            @db.Uuid()
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  job           Job           @relation(fields: [jobId], references: [id])
+  applicant     User          @relation(fields: [userId], references: [id])
+  pipelineStage PipelineStage @relation(fields: [stageId], references: [id])
+  assigned      UserCompany   @relation(fields: [assignedTo], references: [id])
+
+  @@index([id])
+  @@map("applications")
+}

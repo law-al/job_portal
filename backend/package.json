@@ -1,0 +1,52 @@
+{
+  "name": "Job Portal",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "nodemon",
+    "lint": "eslint 'src/**/*.ts'"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.18.0",
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.0.0",
+    "@prisma/client": "^7.0.0",
+    "bcrypt": "^6.0.0",
+    "cloudinary": "^2.8.0",
+    "cookie-parser": "^1.4.7",
+    "dotenv": "^17.2.3",
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.20.0",
+    "multer": "^2.0.2",
+    "nodemailer": "^7.0.10",
+    "pg": "^8.16.3",
+    "slugify": "^1.6.6",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/cookie-parser": "^1.4.10",
+    "@types/express": "^5.0.5",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/morgan": "^1.9.10",
+    "@types/multer": "^2.0.0",
+    "@types/node": "^24.10.1",
+    "@types/nodemailer": "^7.0.4",
+    "@types/pg": "^8.15.6",
+    "eslint": "^9.39.1",
+    "morgan": "^1.10.1",
+    "nodemon": "^3.1.11",
+    "prettier": "^3.6.2",
+    "prisma": "^7.0.0",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "winston": "^3.18.3"
+  }
+}
