@@ -13,6 +13,8 @@ interface Config {
   cloudinaryCloudName: string;
   cloudinaryApiKey: string;
   cloudinaryApiSecret: string;
+  googleClientId: string;
+  googleClientSecret: string;
 }
 
 const config: Config = {
@@ -26,6 +28,8 @@ const config: Config = {
   cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME!,
   cloudinaryApiKey: process.env.CLOUDINARY_API_KEY!,
   cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET!,
+  googleClientId: process.env.GOOGLE_CLIENT_ID!,
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET!,
 };
 
 export default config;

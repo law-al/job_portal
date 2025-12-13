@@ -1,17 +1,28 @@
 import express from 'express';
 import morgan from 'morgan';
 import cookieParser from 'cookie-parser';
+import cors from 'cors';
 import type { Express, Request, Response } from 'express';
 import rootRoute from './routes/index.js';
 import errorHandler from './middlewares/errorHandler.js';
 import { logInfo } from './utils/logger.js';
 import { catchAllRoute } from './middlewares/catchAllRoutes.js';
+import passport from 'passport';
+import './oauth/passport.google.sso.js';
 
 const app: Express = express();
+
+app.use(
+  cors({
+    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    credentials: true,
+  }),
+);
 
 app.use(express.json());
 app.use(cookieParser());
 app.use(morgan('dev'));
+app.use(passport.initialize());
 
 console.log('Root route registered');
 app.use('/api/v1', rootRoute);

@@ -19,7 +19,7 @@ const handleZodErrors = (err: ZodError) => {
   });
   return new ApiError(
     'validation error',
-    404,
+    400,
     ErrorCodes.VALIDATION_ERROR,
     newErrorObject,
   );

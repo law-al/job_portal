@@ -41,7 +41,7 @@ export class InvalidCredentialsException extends ApiError {
 
 export class TokenExpiredException extends ApiError {
   constructor(
-    message: string = 'Token has expired',
+    message: string = 'Token has expired, unauthorized',
     public error: any = null,
   ) {
     super(message, 401, ErrorCodes.TOKEN_EXPIRED, error);
@@ -321,5 +321,14 @@ export class OperationNotAllowedException extends ApiError {
     public error: any = null,
   ) {
     super(message, 403, ErrorCodes.OPERATION_NOT_ALLOWED, error);
+  }
+}
+
+export class JWTNotPresent extends ApiError {
+  constructor(
+    message: string = 'Access forbidden',
+    public error: any = null,
+  ) {
+    super(message, 401, ErrorCodes.ACCESS_TOKEN_NOT_FOUND, error);
   }
 }

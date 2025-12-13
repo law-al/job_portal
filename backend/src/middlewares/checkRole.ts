@@ -1,24 +1,17 @@
 import type { NextFunction, Request, Response } from 'express';
 import type { CompanyRole, UserRole } from '../generated/prisma/enums.js';
 import { FindUserById } from '../services/auth.service.js';
-import {
-  BadRequestException,
-  ForbiddenException,
-  NotFoundException,
-} from '../exceptions/exceptions.js';
-import {
-  FindCompanyById,
-  FindCompanyMember,
-} from '../services/company.service.js';
+import { ForbiddenException } from '../exceptions/exceptions.js';
 
 export const checkUserRole = (role: UserRole) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      if (!req.user?.id) {
+      const userId = (req.user as any).id;
+      if (!userId) {
         throw new ForbiddenException('Authentication required');
       }
 
-      const user = await FindUserById(req.user.id);
+      const user = await FindUserById(userId);
 
       if (user.role !== role) {
         throw new ForbiddenException('Insufficient permissions');
@@ -34,25 +27,18 @@ export const checkUserRole = (role: UserRole) => {
 export const checkCompanyRole = (roles: CompanyRole[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { id: companyId } = req.params;
+      // This middleware should be used AFTER verifyCompanyMember
+      // which already verifies company membership and user status
+      const companyMember = (req as any).companyMember;
 
-      if (!companyId) {
-        throw new BadRequestException(`company with ${companyId} not found`);
+      if (!companyMember) {
+        throw new ForbiddenException('Company membership verification required. Use verifyCompanyMember middleware first.');
       }
 
-      if (!req.user?.id) {
-        throw new ForbiddenException('Authentication required');
-      }
-      const company = await FindCompanyById(companyId);
-      const member = await FindCompanyMember(company.id, req.user.id);
-
-      if (!member)
-        throw new NotFoundException(`member not found for this company`);
-      if (!member.role)
-        throw new BadRequestException(`member does not have a role`);
-
-      if (!roles.includes(member.role))
+      // Check if user's role in this company allows the action
+      if (!roles.includes(companyMember.role)) {
         throw new ForbiddenException('Insufficient permissions');
+      }
 
       next();
     } catch (error) {

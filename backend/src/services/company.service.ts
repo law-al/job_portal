@@ -1,19 +1,13 @@
 import { hashSync } from 'bcrypt';
-import {
-  NotFoundException,
-  BadRequestException,
-  ConflictException,
-} from '../exceptions/exceptions.js';
+import { NotFoundException, BadRequestException, ConflictException } from '../exceptions/exceptions.js';
 import type { CompanyRole } from '../generated/prisma/enums.js';
-import {
-  AcceptInviteSchema,
-  RegisterCompanySchema,
-  UpdateCompanySchema,
-} from '../models/company.model.js';
+import { AcceptInviteSchema, RegisterCompanySchema, UpdateCompanySchema } from '../models/company.model.js';
 import { createHash } from '../utils/createHash.js';
 import logger from '../utils/logger.js';
 import { prisma } from '../utils/prismaClient.js';
 import crypto from 'crypto';
+import { ErrorCodes } from '../exceptions/index.js';
+import type { User } from '../generated/prisma/browser.js';
 
 // NOTE: CREATE COMPANY
 export const CreateCompany = async (body: RegisterCompanySchema) => {
@@ -35,7 +29,7 @@ export const CreateCompany = async (body: RegisterCompanySchema) => {
       data: {
         companyId: company.id,
         userId: validatedBody.userId,
-        role: 'COMPANY_ADMIN',
+        role: 'ADMIN',
       },
     });
 
@@ -76,11 +70,60 @@ export const UpdateCompany = async (id: string, body: any) => {
   }
 };
 
+// NOTE: FIND COMPANY BY USER ID
+export const FindCompaniesByUserID = async (id: string) => {
+  try {
+    const companies = await prisma.userCompany.findMany({
+      where: {
+        userId: id,
+      },
+      include: {
+        company: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+          },
+        },
+      },
+    });
+
+    return companies;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// NOTE: FIND COMPANY BY USER ID
+// Returns the first company the user is a member of (any role)
+export const FindCompanyByUserID = async (id: string) => {
+  try {
+    const company = await prisma.userCompany.findFirst({
+      where: {
+        userId: id,
+        status: 'ACTIVE', // Only get active memberships
+      },
+      include: {
+        company: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'asc', // Get the first/oldest company membership
+      },
+    });
+
+    return company;
+  } catch (error) {
+    throw error;
+  }
+};
+
 // NOTE: REMOVE USER FROM COMPANY
-export const RemoveUserFromCompany = async (
-  companyId: string,
-  userId: string,
-) => {
+export const RemoveUserFromCompany = async (companyId: string, userId: string) => {
   try {
     await prisma.userCompany.delete({
       where: {
@@ -95,6 +138,44 @@ export const RemoveUserFromCompany = async (
   }
 };
 
+// NOTE: FIND COMPANY MEMBERS V2
+export const FindCompanyMembersV2 = async (id: string) => {
+  try {
+    const company = await prisma.company.findFirst({
+      where: {
+        id,
+      },
+    });
+
+    if (!company) throw new NotFoundException(`company with id ${id} not found`);
+
+    const members = await prisma.userCompany.findMany({
+      where: {
+        companyId: company.id,
+        role: {
+          not: 'ADMIN',
+        },
+      },
+      select: {
+        createdAt: true,
+        id: true,
+        role: true,
+        status: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+          },
+        },
+      },
+    });
+
+    return members;
+  } catch (error) {
+    throw error;
+  }
+};
+
 // NOTE: FIND COMPANY MEMBERS
 export const FindCompanyMembers = async (id: string) => {
   try {
@@ -104,22 +185,24 @@ export const FindCompanyMembers = async (id: string) => {
       },
     });
 
-    if (!company)
-      throw new NotFoundException(`company with id ${id} not found`);
+    if (!company) throw new NotFoundException(`company with id ${id} not found`);
 
-    const members = await prisma.user.findMany({
+    const members = await prisma.userCompany.findMany({
       where: {
-        company: {
-          some: {
-            companyId: company.id,
-          },
+        companyId: company.id,
+        role: {
+          not: 'ADMIN',
         },
       },
       select: {
-        id: true,
-        firstName: true,
-        lastName: true,
-        email: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+          },
+        },
+        role: true,
+        createdAt: true,
       },
     });
 
@@ -130,11 +213,12 @@ export const FindCompanyMembers = async (id: string) => {
       select: {
         email: true,
         status: true,
+        role: true,
         createdAt: true,
       },
     });
 
-    // Saple result
+    // Sample result
     /*
       {
         a@gmail.com => 'ACTICE'
@@ -143,38 +227,32 @@ export const FindCompanyMembers = async (id: string) => {
         d@gmail.com => 'ACTICE'
       }
     */
-    const invitationMap = new Map(
-      invitations.map((inv) => [
-        inv.email,
-        { status: inv.status, invitedAt: inv.createdAt },
-      ]),
-    );
+    const invitationMap = new Map(invitations.map((inv) => [inv.email, { status: inv.status, invitedAt: inv.createdAt }]));
 
     const membersAndStatus = members.map((member) => ({
-      ...member,
-      status: invitationMap.get(member.email)?.status || 'ACTIVE',
-      invitedAt: invitationMap.get(member.email)?.invitedAt || null,
+      id: member.user.id,
+      email: member.user.email,
+      role: member.role,
+      status: invitationMap.get(member.user.email)?.status || 'ACTIVE',
+      createdAt: invitationMap.get(member.user.email)?.invitedAt || null,
     }));
 
-    const memberEmails = new Set(members.map((m) => m.email));
+    const memberEmails = new Set(members.map((m) => m.user.email));
     const pendingInvites = invitations
       .filter((inv) => !memberEmails.has(inv.email))
       .map((inv) => ({
         id: null,
-        firstName: null,
-        lastName: null,
         email: inv.email,
+        role: inv.role,
         status: inv.status,
-        invitedAt: inv.createdAt,
+        createdAt: inv.createdAt,
       }));
 
-    const allMembersAndInvites = [...membersAndStatus, ...pendingInvites].sort(
-      (a, b) => {
-        if (!a.invitedAt) return 1;
-        if (!b.invitedAt) return -1;
-        return b.invitedAt.getTime() - a.invitedAt.getTime();
-      },
-    );
+    const allMembersAndInvites = [...membersAndStatus, ...pendingInvites].sort((a, b) => {
+      if (!a.createdAt) return 1;
+      if (!b.createdAt) return -1;
+      return b.createdAt.getTime() - a.createdAt.getTime();
+    });
 
     return allMembersAndInvites;
   } catch (error) {
@@ -183,10 +261,7 @@ export const FindCompanyMembers = async (id: string) => {
 };
 
 // NOTE: FIND COMPANY MEMBER
-export const FindCompanyMember = async (
-  companyId: string,
-  memberId: string,
-) => {
+export const FindCompanyMember = async (companyId: string, memberId: string) => {
   try {
     return await prisma.userCompany.findUnique({
       where: {
@@ -201,19 +276,54 @@ export const FindCompanyMember = async (
   }
 };
 
+// NOTE: FIND COMPANY MEMBER WITH USER DETAILS
+export const FindCompanyMemberWithUser = async (companyId: string, memberId: string) => {
+  try {
+    return await prisma.userCompany.findUnique({
+      where: {
+        userId_companyId: {
+          companyId,
+          userId: memberId,
+        },
+      },
+      select: {
+        id: true,
+        role: true,
+        status: true,
+        createdAt: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            isActive: true,
+          },
+        },
+      },
+    });
+  } catch (error) {
+    throw error;
+  }
+};
+
 // NOTE: CHANGE ROLE
-export const ChangeMemberRole = async (
-  companyId: string,
-  userId: string,
-  role: CompanyRole,
-) => {
-  console.log('Looking for:', { companyId, userId });
+export const ChangeMemberRole = async (companyId: string | undefined, memberId: string | undefined, role: any) => {
+  if (!companyId) throw new BadRequestException('A company ID needs to be provided', ErrorCodes.MISSING_COMPANY_ID);
+  if (!memberId) throw new BadRequestException('A member ID needs to be provided', ErrorCodes.MISSING_USER_ID);
+  const validRoles = ['HR', 'INTERVIEWER', 'RECRUITER'];
+
+  if (!validRoles.includes(role)) {
+    throw new BadRequestException('Invalid role. Must be HR, INTERVIEWER, or RECRUITER', ErrorCodes.BAD_GATEWAY);
+  }
+
   try {
     await prisma.userCompany.update({
       where: {
         userId_companyId: {
           companyId,
-          userId,
+          userId: memberId,
+        },
+        role: {
+          not: 'ADMIN',
         },
       },
       data: {
@@ -225,18 +335,77 @@ export const ChangeMemberRole = async (
   }
 };
 
+// NOTE: SUSPEND MEMBER
+export const SuspendMember = async (companyId: string, userId: string) => {
+  try {
+    const member = await prisma.userCompany.findUnique({
+      where: {
+        userId_companyId: {
+          companyId,
+          userId,
+        },
+      },
+    });
+
+    if (!member) throw new NotFoundException('member not found');
+
+    if (member.role === 'ADMIN') {
+      throw new BadRequestException('Cannot suspend an admin user', ErrorCodes.OPERATION_NOT_ALLOWED);
+    }
+
+    await prisma.userCompany.update({
+      where: {
+        userId_companyId: {
+          companyId,
+          userId,
+        },
+      },
+      data: {
+        status: 'SUSPENDED',
+      },
+    });
+  } catch (error) {
+    throw error;
+  }
+};
+
+// NOTE: UNSUSPEND MEMBER
+export const UnsuspendMember = async (companyId: string, userId: string) => {
+  try {
+    const member = await prisma.userCompany.findUnique({
+      where: {
+        userId_companyId: {
+          companyId,
+          userId,
+        },
+      },
+    });
+
+    if (!member) throw new NotFoundException('member not found');
+
+    await prisma.userCompany.update({
+      where: {
+        userId_companyId: {
+          companyId,
+          userId,
+        },
+      },
+      data: {
+        status: 'ACTIVE',
+      },
+    });
+  } catch (error) {
+    throw error;
+  }
+};
+
 // NOTE: INVITE USER
-export const InviteUser = async (
-  email: string,
-  role: CompanyRole,
-  companyId: string,
-  invitedBy: string,
-) => {
+export const InviteUser = async (email: string, role: CompanyRole, companyId: string, invitedBy: string) => {
   try {
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      throw new BadRequestException('Invalid email format');
+      throw new BadRequestException('Invalid email format', ErrorCodes.INVALID_INPUT);
     }
 
     // Check if company exists
@@ -262,9 +431,7 @@ export const InviteUser = async (
     });
 
     if (existingInvitation) {
-      throw new ConflictException(
-        'A pending invitation already exists for this email and company',
-      );
+      throw new ConflictException('A pending invitation already exists for this email and company');
     }
 
     // Check if user already exists and is already part of the company
@@ -313,100 +480,113 @@ export const InviteUser = async (
   }
 };
 
-// NOTE: ACCEPT INVITE
-export const AcceptUser = async (body: any) => {
-  try {
-    const validatedBody = AcceptInviteSchema.parse(body);
-    const hashedToken = crypto
-      .createHash('sha256')
-      .update(validatedBody.token)
-      .digest('hex');
+// NOTE: CHECK INVITE TOKEN
 
-    const invitee = await prisma.invitation.findFirst({
+export const CheckInviteToken = async (token: string) => {
+  try {
+    const { hashedToken } = createHash(token);
+
+    const invitation = await prisma.invitation.findFirst({
       where: {
         hashedToken,
-        status: 'PENDING',
         expiresAt: {
           gte: new Date(),
         },
+        status: 'PENDING',
+      },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        companyId: true,
       },
     });
 
-    if (!invitee) {
-      throw new BadRequestException('Invite link is invalid or has expired');
+    if (!invitation) throw new BadRequestException('Invitation link expired', ErrorCodes.VERIFICATION_EXPIRED);
+
+    return invitation;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const AcceptInvitedUser = async ({ email, password }: { email: string; password?: string }, token: string) => {
+  try {
+    if (!email && !token) {
+      throw new BadRequestException('Missing required identifier: either email or token must be provided.', ErrorCodes.BAD_REQUEST);
     }
 
-    // Check if user already exists
-    let user = await prisma.user.findUnique({
+    const invitation = await prisma.invitation.findFirst({
       where: {
-        email: invitee.email,
+        token,
       },
     });
 
-    // If user doesn't exist, create a new user
-    if (!user) {
-      user = await prisma.user.create({
-        data: {
-          firstName: validatedBody.firstName,
-          lastName: validatedBody.lastName,
-          email: invitee.email,
-          password: hashSync(validatedBody.password, 12),
-          isEmailVerified: true,
-        },
-      });
+    if (!invitation) {
+      throw new NotFoundException('Invitation not found or the token is invalid.', ErrorCodes.TOKEN_INVALID);
+    }
 
-      logger.info(`New user created: ${user.email} via invitation`);
-    } else {
-      const existingMembership = await prisma.userCompany.findUnique({
+    let user: User;
+
+    const result = await prisma.$transaction(async (tx) => {
+      if (password) {
+        user = await tx.user.create({
+          data: {
+            email,
+            role: 'USER',
+            password: hashSync(password, 12),
+            isVerified: true,
+          },
+        });
+      } else {
+        const result = await tx.user.findFirst({
+          where: {
+            email,
+          },
+        });
+        if (!result) throw new NotFoundException('Password is required', ErrorCodes.NOT_FOUND);
+        user = result;
+      }
+
+      await tx.userCompany.upsert({
         where: {
           userId_companyId: {
             userId: user.id,
-            companyId: invitee.companyId,
+            companyId: invitation.companyId,
           },
+        },
+        update: {
+          role: invitation.role,
+        },
+        create: {
+          userId: user.id,
+          companyId: invitation.companyId,
+          role: invitation.role,
         },
       });
 
-      if (existingMembership) {
-        throw new ConflictException('User is already a member of this company');
-      }
-    }
+      await tx.invitation.update({
+        where: {
+          id: invitation.id,
+        },
+        data: {
+          hashedToken: null,
+          expiresAt: null,
+          acceptedAt: new Date(),
+          status: 'ACCEPTED',
+          token: null,
+        },
+        select: {
+          id: true,
+          email: true,
+          role: true,
+          companyId: true,
+        },
+      });
 
-    await prisma.userCompany.create({
-      data: {
-        userId: user.id,
-        companyId: invitee.companyId,
-        role: invitee.role,
-      },
+      return user;
     });
-
-    // Update invitation status
-    await prisma.invitation.update({
-      where: {
-        id: invitee.id,
-      },
-      data: {
-        acceptedAt: new Date(),
-        status: 'ACCEPTED',
-      },
-    });
-
-    logger.info(
-      `User ${user.email} accepted invitation to company ${invitee.companyId}`,
-    );
-
-    return {
-      success: true,
-      user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.firstName,
-        lastName: user.lastName,
-      },
-      companyId: invitee.companyId,
-      role: invitee.role,
-    };
   } catch (error) {
-    logger.error(`Error accepting invitation: ${error}`);
     throw error;
   }
 };

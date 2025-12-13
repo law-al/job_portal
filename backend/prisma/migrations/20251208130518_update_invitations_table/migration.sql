@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "invitations" ALTER COLUMN "token" DROP NOT NULL,
+ALTER COLUMN "hashedToken" DROP NOT NULL,
+ALTER COLUMN "expiresAt" DROP NOT NULL;

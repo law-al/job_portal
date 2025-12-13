@@ -1,46 +1,45 @@
 {
-  // Visit https://aka.ms/tsconfig to read more about this file
   "compilerOptions": {
     // File Layout
-    // "rootDir": "./src",
-    // "outDir": "./dist",
+    "rootDir": "./src",
+    "outDir": "./dist",
 
     // Environment Settings
-    // See also https://aka.ms/tsconfig/module
     "module": "nodenext",
     "target": "esnext",
-    "types": [],
-    // For nodejs:
-    // "lib": ["esnext"],
-    // "types": ["node"],
-    // and npm install -D @types/node
+
+    // **CRITICAL FIX:** Using standard Node.js library types
+    "lib": ["esnext"],
+
+    "types": ["node"],
 
     // Other Outputs
     "sourceMap": true,
     "declaration": true,
     "declarationMap": true,
 
-    // Stricter Typechecking Options
+    // Recommended Strict Options
+    "strict": true,
+
+    // **FIXED:** Remove this or set to true to enforce strict typing
+    "noImplicitAny": true,
+
+    // Additional Strict Options
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
 
-    // Style Options
-    // "noImplicitReturns": true,
-    // "noImplicitOverride": true,
-    // "noUnusedLocals": true,
-    // "noUnusedParameters": true,
-    // "noFallthroughCasesInSwitch": true,
-    // "noPropertyAccessFromIndexSignature": true,
+    // Module Resolution and Safety
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
 
-    // Recommended Options
-    "strict": true,
+    // Modern Module System / JSX-related safety
     "jsx": "react-jsx",
     "verbatimModuleSyntax": true,
     "isolatedModules": true,
     "noUncheckedSideEffectImports": true,
-    "moduleDetection": "force",
-    "skipLibCheck": true,
+    "moduleDetection": "force"
   },
-  "include": ["src/**/*"],
+  "include": ["src", "types"], // Assuming 'types' includes your 'express/index.d.ts' extensions
   "exclude": ["node_modules", "dist"]
 }

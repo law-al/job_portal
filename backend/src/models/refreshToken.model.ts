@@ -12,6 +12,12 @@ const refreshTokenSchema = new mongoose.Schema({
     unique: true,
     index: true,
   },
+  hashedToken: {
+    type: String,
+    required: true,
+    unique: true,
+    index: true,
+  },
   isRevoked: {
     type: Boolean,
     default: false,

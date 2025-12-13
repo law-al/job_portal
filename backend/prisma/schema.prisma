@@ -14,9 +14,8 @@ datasource db {
 }
 
 enum UserRole {
-  JOB_SEEKER
+  USER
   COMPANY
-  OTHER
 }
 
 enum InvitationStatus {
@@ -27,7 +26,7 @@ enum InvitationStatus {
 }
 
 enum CompanyRole {
-  COMPANY_ADMIN
+  ADMIN
   HR
   RECRUITER
   INTERVIEWER
@@ -76,13 +75,20 @@ enum ApplicationStatus {
   WITHDRAWN
 }
 
+enum UserCompanyStatus {
+  ACTIVE
+  SUSPENDED
+  REMOVED
+  BLOCKED
+}
+
 model User {
   id                              String    @id @default(uuid()) @db.Uuid()
-  firstName                       String    @db.VarChar(255)
-  lastName                        String    @db.VarChar(255)
+  provider                        String?
+  providerId                      String?
   email                           String    @unique @db.VarChar(255)
-  password                        String    @db.VarChar(255)
-  role                            UserRole  @default(OTHER)
+  password                        String?   @db.VarChar(255)
+  role                            UserRole  @default(USER)
   isVerified                      Boolean   @default(false)
   isActive                        Boolean   @default(true)
   isDeleted                       Boolean   @default(false)
@@ -102,6 +108,7 @@ model User {
   applicants Application[]
 
   @@unique([id])
+  @@unique([providerId])
   @@index([email])
   @@map("users")
 }
@@ -128,12 +135,13 @@ model Company {
 }
 
 model UserCompany {
-  id        String      @id @default(uuid()) @db.Uuid()
-  role      CompanyRole @default(OTHER)
-  userId    String      @db.Uuid()
-  companyId String      @db.Uuid()
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
+  id        String            @id @default(uuid()) @db.Uuid()
+  role      CompanyRole       @default(OTHER)
+  userId    String            @db.Uuid()
+  companyId String            @db.Uuid()
+  status    UserCompanyStatus @default(ACTIVE)
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
 
   user    User    @relation(fields: [userId], references: [id])
   company Company @relation(fields: [companyId], references: [id])
@@ -147,13 +155,13 @@ model UserCompany {
 model Invitation {
   id          String           @id @default(uuid()) @db.Uuid()
   email       String           @db.VarChar(255)
-  token       String           @unique @db.VarChar(255)
-  hashedToken String           @db.VarChar(255)
+  token       String?          @unique @db.VarChar(255)
+  hashedToken String?          @db.VarChar(255)
   role        CompanyRole
   companyId   String           @db.Uuid()
   invitedBy   String           @db.Uuid()
   status      InvitationStatus @default(PENDING)
-  expiresAt   DateTime
+  expiresAt   DateTime?
   acceptedAt  DateTime?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
@@ -186,6 +194,7 @@ model Job {
   isRemote        Boolean         @default(false)
   createdAt       DateTime        @default(now())
   updatedAt       DateTime        @updatedAt
+  pipelineName    String?         @db.VarChar(255)
 
   company Company @relation(fields: [companyId], references: [id])
 

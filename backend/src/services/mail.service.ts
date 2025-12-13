@@ -22,7 +22,7 @@ export const sendEmail = async (email: string, html: string) => {
 
 export const sendVerificationEmail = async (email: string, token: string) => {
   try {
-    const verifyUrl = `http://localhost:3000/api/v1/auth/verify?token=${token}`;
+    const verifyUrl = `http://localhost:3001/verify?token=${token}`;
     const html = `<p>Click to verify: <a href="${verifyUrl}">${verifyUrl}</a></p>`;
 
     await sendEmail(email, html);
@@ -33,7 +33,7 @@ export const sendVerificationEmail = async (email: string, token: string) => {
 
 export const sendForgetPasswordEmail = async (email: string, token: string) => {
   try {
-    const verifyUrl = `http://localhost:3000/api/v1/auth/forgot-password?reset=${token}`;
+    const verifyUrl = `http://localhost:3001/reset-password?reset=${token}`;
     const html = `<p>Click to change password: <a href="${verifyUrl}">${verifyUrl}</a></p>`;
 
     await sendEmail(email, html);

@@ -6,253 +6,251 @@ import {
   GetVerifyEmailToken,
   GetVerifyPasswordToken,
   LoginUser,
+  RegisterOauthUser,
   RegisterUser,
+  RegisterUserCompany,
   UpdateUserPassword,
   VerifyUserEmailToken,
+  VerifyUserPasswordExpiredToken,
   VerifyUserPasswordToken,
 } from '../services/auth.service.js';
 import config from '../config/config.js';
-import {
-  FindRefreshToken,
-  FindTokenByUser,
-  saveRefreshTokenToDB,
-} from '../services/refreshToken.service.js';
+import { FindRefreshToken, FindTokenByUser, saveRefreshTokenToDB, revokeRefreshToken, revokeAllUserTokens } from '../services/refreshToken.service.js';
 import logger from '../utils/logger.js';
-import {
-  sendForgetPasswordEmail,
-  sendInvitationEmail,
-  sendVerificationEmail,
-} from '../services/mail.service.js';
-import {
-  BadRequestException,
-  TokenExpiredException,
-  UserNotFoundException,
-} from '../exceptions/exceptions.js';
+import { sendForgetPasswordEmail, sendInvitationEmail, sendVerificationEmail } from '../services/mail.service.js';
+import { BadRequestException, InvalidTokenException, TokenExpiredException, UserNotFoundException } from '../exceptions/exceptions.js';
 import { decodeJwt } from '../services/index.js';
-import { AcceptUser, InviteUser } from '../services/company.service.js';
-import type { CompanyRole } from '../generated/prisma/enums.js';
+import { AcceptInvitedUser, CheckInviteToken, FindCompaniesByUserID, FindCompanyByUserID, InviteUser } from '../services/company.service.js';
+import type { CompanyRole, UserRole } from '../generated/prisma/enums.js';
 import { ErrorCodes } from '../exceptions/index.js';
-
-interface UserPayload {
-  id: string;
-  firstName: string;
-  lastName: string;
-}
-
-const getToken = (payload: UserPayload, minutes: number) => {
-  return jwt.sign(payload, config.JWTsecret, {
-    expiresIn: `${minutes}m`,
-  });
-};
-
-const response = (res: Response, statusCode: number = 200, message: string) => {
-  return res.status(statusCode).json({ success: true, message });
-};
+import { uploadToCloudinary } from '../utils/cloudinary.js';
+import generateTokens from '../utils/generateToken.js';
+import type { User } from '../generated/prisma/browser.js';
 
 // NOTE: Register Account
-export const register = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
+export const register = async (req: Request, res: Response, next: NextFunction) => {
   const newUser = await RegisterUser(req.body);
 
-  const accessToken = getToken(
-    {
-      id: newUser.id,
-      firstName: newUser.firstName,
-      lastName: newUser.lastName,
-    },
-    10,
-  );
+  const { accessToken, refreshToken } = generateTokens(newUser);
 
-  const refreshToken = getToken(
-    {
-      id: newUser.id,
-      firstName: newUser.firstName,
-      lastName: newUser.lastName,
-    },
-    7 * 24 * 30,
-  );
-
-  await saveRefreshTokenToDB({
+  const refreshTokenHash = await saveRefreshTokenToDB({
     userId: newUser.id,
     token: refreshToken,
-    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-  });
-
-  res.cookie('access', accessToken, {
-    httpOnly: true,
-    secure: config.nodeEnv === 'production',
-    maxAge: 5 * 60 * 1000,
-  });
-
-  res.cookie('refresh', refreshToken, {
-    httpOnly: true,
-    secure: config.nodeEnv === 'production',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   });
 
   const verifyToken = await GetVerifyEmailToken(newUser.id);
 
   logger.info(`verification link has been sent successfully`);
 
-  response(res, 201, 'User registered successfully');
+  res.status(201).json({
+    success: true,
+    message: 'User registered, proceed to verify email',
+    data: {
+      id: newUser.id,
+      email: newUser.email,
+      role: newUser.role,
+      isVerified: newUser.isVerified,
+      accessToken,
+      refreshTokenHash,
+    },
+  });
 
   await sendVerificationEmail(newUser.email, verifyToken);
   console.log('email sent');
 };
 
 // NOTE: User login
-export const login = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
+export const login = async (req: Request, res: Response, next: NextFunction) => {
+  let companyId: string | null = null;
+
   const user = await LoginUser(req.body);
-  const accessToken = getToken(
-    {
-      id: user.id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-    },
-    10,
-  );
 
-  const refreshToken = getToken(
-    {
-      id: user.id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-    },
-    7 * 24 * 30,
-  );
+  // check if user is an company and get user companyId
+  const userCompany = await FindCompanyByUserID(user.id);
 
-  await saveRefreshTokenToDB({
+  if (userCompany) {
+    companyId = userCompany.companyId;
+  }
+
+  const { accessToken, refreshToken } = generateTokens(user);
+
+  const refreshTokenHash = await saveRefreshTokenToDB({
     userId: user.id,
     token: refreshToken,
-    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   });
 
-  res.cookie('access', accessToken, {
-    httpOnly: true,
-    secure: config.nodeEnv === 'production',
-    maxAge: 5 * 60 * 1000,
+  res.status(200).json({
+    success: true,
+    message: 'User login successful',
+    data: {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      isVerified: user.isVerified,
+      companyId,
+      accessToken,
+      refreshTokenHash,
+    },
+  });
+};
+
+export const registerUserCompany = async (req: Request, res: Response, next: NextFunction) => {
+  if (!req.file) {
+    throw new BadRequestException('No file uploaded', ErrorCodes.FILE_UPLOAD_FAILED);
+  }
+
+  if (!req.body.name) {
+    throw new BadRequestException('Company name must be provided', ErrorCodes.MISSING_COMPANY_ID);
+  }
+
+  const result = await uploadToCloudinary(req.file.buffer, req.body.name);
+
+  const { user, company } = await RegisterUserCompany({
+    ...req.body,
+    logo: result.secure_url,
   });
 
-  res.cookie('refresh', refreshToken, {
-    // httpOnly: true,
-    // secure: config.nodeEnv === 'production',
-    // sameSite: 'strict',
-    // maxAge: 5 * 60 * 1000,
-    // path: '/',
+  const { accessToken, refreshToken } = generateTokens(user);
 
-    httpOnly: true,
-    secure: config.nodeEnv === 'production',
-    maxAge: 7 * 24 * 60 * 60 * 1000,
+  const refreshTokenHash = await saveRefreshTokenToDB({
+    userId: user.id,
+    token: refreshToken,
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   });
 
-  response(res, 201, 'User login successful');
+  const verifyToken = await GetVerifyEmailToken(user.id);
+
+  logger.info(`verification link has been sent successfully`);
+
+  res.status(201).json({
+    success: true,
+    message: 'User registered, proceed to verify email',
+    data: {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      companyId: company.id,
+      isVerified: user.isVerified,
+      accessToken,
+      refreshTokenHash,
+    },
+  });
+
+  await sendVerificationEmail(user.email, verifyToken);
+};
+
+export const oAuth = async (req: Request, res: Response, next: NextFunction) => {
+  console.log('oauth entered');
+  const user = await RegisterOauthUser(req.body);
+
+  const { accessToken, refreshToken } = generateTokens(user);
+
+  const refreshTokenHash = await saveRefreshTokenToDB({
+    userId: user.id,
+    token: refreshToken,
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+  });
+
+  res.status(200).json({
+    success: true,
+    data: {
+      id: user.id,
+      email: user.email,
+      role: user.role,
+      isVerified: user.isVerified,
+      accessToken,
+      refreshTokenHash,
+    },
+  });
 };
 
 // NOTE: Verify Account
-export const verifyAccount = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
+export const verifyAccount = async (req: Request, res: Response, next: NextFunction) => {
   const verifyToken = req.query.token as string;
-  await VerifyUserEmailToken(verifyToken);
-  response(res, 200, 'Account successfully verified');
+  const user = await VerifyUserEmailToken(verifyToken);
+  res.status(200).json({
+    success: true,
+    message: 'Email successfully verified',
+    data: { isVerified: user.isVerified },
+  });
 };
 
 // NOTE: Re Verify Account
-export const reVerifyAccount = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  const user = await FindUserById(req.user.id);
-  if (user.isEmailVerified)
-    throw new BadRequestException(
-      'User already verified',
-      ErrorCodes.USER_ALREADY_VERIFIED,
-    );
+export const reVerifyAccount = async (req: Request, res: Response, next: NextFunction) => {
+  const userId = (req.user as any).id;
+
+  const user = await FindUserById(userId);
+  if (user.isEmailVerified) throw new BadRequestException('User already verified', ErrorCodes.USER_ALREADY_VERIFIED);
   const verifyToken = await GetVerifyEmailToken(user.id);
   logger.info(`verification link has been sent successfully`);
-  response(res, 200, 'Verification link sent');
+  res.status(200).json({
+    success: true,
+    message: 'User registered, proceed to verify email',
+    data: { email: user.email, role: user.role },
+  });
 
-  await sendVerificationEmail(req.user.email, verifyToken);
+  await sendVerificationEmail(user.email, verifyToken);
   console.log('email sent');
 };
 
 // NOTE: Forgot Password
-export const forgotPassword = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
+export const forgotPassword = async (req: Request, res: Response, next: NextFunction) => {
   const user = await FindUserByEmail(req.body.email);
+
+  if (!user) {
+    throw new UserNotFoundException();
+  }
+
   const verifyToken = await GetVerifyPasswordToken(user.id);
   logger.info(`verification link has been sent successfully`);
 
-  console.log(`+++++++++++++++++${user.email}`);
   res.status(200).json({ success: true, message: 'password reset link sent' });
 
-  console.log(`+++++++++++++++++${user.email}`);
   await sendForgetPasswordEmail(user.email, verifyToken);
 };
 
 // NOTE: Reset Password
-export const resetPassword = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
+export const resetPassword = async (req: Request, res: Response, next: NextFunction) => {
   const verifyToken = req.query.reset as string;
+  if (!verifyToken) throw new BadRequestException('no token provided', ErrorCodes.TOKEN_INVALID);
+
   const user = await VerifyUserPasswordToken(verifyToken);
+
   await UpdateUserPassword(req.body, user.id);
 
-  res
-    .status(200)
-    .json({ success: true, message: 'password successfully changed' });
+  res.status(200).json({ success: true, message: 'password successfully changed' });
+};
+
+// NOTE: Resend Password Reset Link
+export const resendPasswordResetLink = async (req: Request, res: Response, next: NextFunction) => {
+  const verifyToken = req.query.reset as string;
+  if (!verifyToken) throw new BadRequestException('no token provided', ErrorCodes.TOKEN_INVALID);
+
+  const user = await VerifyUserPasswordExpiredToken(verifyToken);
+
+  const token = await GetVerifyPasswordToken(user.id);
+
+  res.status(200).json({ success: true, message: 'password reset link sent' });
+
+  await sendForgetPasswordEmail(user.email, token);
 };
 
 // NOTE: Invite user
-export const inviteUser = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
+export const inviteUser = async (req: Request, res: Response, next: NextFunction) => {
+  const userId = (req.user as any).id;
+
   const email = req.body.email;
-  const role = req.body.role as CompanyRole;
-  const { id: companyId } = req.params;
+  const role = (req.body.role as string).toUpperCase() as CompanyRole;
+  const { companyId } = req.params;
 
-  if (!email)
-    throw new BadRequestException(
-      'An email must be provided',
-      ErrorCodes.MISSING_REQUIRED_FIELD,
-    );
-  if (!role)
-    throw new BadRequestException(
-      'A role must be provided',
-      ErrorCodes.MISSING_REQUIRED_FIELD,
-    );
-  if (!companyId)
-    throw new BadRequestException(
-      'A company ID must be provided',
-      ErrorCodes.JOB_ALREADY_CLOSED,
-    );
-  const {
-    email: inviteeEmail,
-    token,
-    role: inviteeRole,
-    companyName,
-  } = await InviteUser(email, role, companyId, req.user.id);
+  if (!email) throw new BadRequestException('An email must be provided', ErrorCodes.MISSING_REQUIRED_FIELD);
+  if (!role) throw new BadRequestException('A role must be provided', ErrorCodes.MISSING_REQUIRED_FIELD);
+  if (!companyId) throw new BadRequestException('A company ID must be provided', ErrorCodes.MISSING_COMPANY_ID);
+  const { email: inviteeEmail, token, role: inviteeRole, companyName } = await InviteUser(email, role, companyId, userId);
 
-  logger.info(
-    `Invitation sent to ${inviteeEmail} for company ${companyName} with role ${inviteeRole}`,
-  );
+  logger.info(`Invitation sent to ${inviteeEmail} for company ${companyName} with role ${inviteeRole}`);
 
   res.status(200).json({
     success: true,
@@ -262,52 +260,125 @@ export const inviteUser = async (
   await sendInvitationEmail(inviteeEmail, token, companyName, role);
 };
 
-// NOTE: Accept invite
-export const acceptInvite = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
+// NOTE: Check invite
+export const checkInvite = async (req: Request, res: Response, next: NextFunction) => {
   const { token } = req.query;
-  const result = await AcceptUser({ ...req.body, token });
+
+  if (!token) {
+    throw new BadRequestException('No token provided', ErrorCodes.INVALID_INVITE_RESET_TOKEN);
+  }
+
+  const result = await CheckInviteToken(token as string);
+
+  const user = await FindUserByEmail(result.email);
+
+  const userExist = user ? true : false;
 
   res.status(200).json({
     success: true,
-    message: 'Invitation accepted successfully',
-    data: result,
+    message: '',
+    data: { ...result, userExist },
+  });
+};
+
+// NOTE: Accept invite
+export const acceptInvite = async (req: Request, res: Response, next: NextFunction) => {
+  console.log(req.body);
+  const { email, password, token } = req.body;
+
+  const user = await AcceptInvitedUser({ email, password }, token);
+
+  res.status(200).json({
+    success: true,
+    message: 'user invite success',
+    data: user,
   });
 };
 
 // NOTE: Get access
-export const getAccessToken = async (
-  req: Request,
-  res: Response,
-  next: NextFunction,
-) => {
-  const refreshTokenFromCookie = req.cookies.refreshToken;
-  console.log(refreshTokenFromCookie);
+export const getAccessToken = async (req: Request, res: Response, next: NextFunction) => {
+  const { refreshTokenId } = req.params;
 
-  await FindRefreshToken(refreshTokenFromCookie);
+  if (!refreshTokenId) {
+    throw new InvalidTokenException();
+  }
 
-  const decoded = decodeJwt(refreshTokenFromCookie);
+  const { token } = await FindRefreshToken(refreshTokenId);
+
+  const decoded = decodeJwt(token);
+
   if (!decoded || !decoded.id) throw new TokenExpiredException();
+
   const user = await FindUserById(decoded.id);
 
-  const accessToken = getToken(
-    {
-      id: user.id,
-      firstName: user.firstName,
-      lastName: user.lastName,
+  if (!user) throw new BadRequestException('unauthorized', ErrorCodes.USER_NOT_FOUND);
+
+  // Check if user is active and not deleted
+  if (!user.isActive) {
+    throw new BadRequestException('User account is inactive', ErrorCodes.BAD_REQUEST);
+  }
+
+  if (user.isDeleted) {
+    throw new BadRequestException('User account has been deleted', ErrorCodes.BAD_REQUEST);
+  }
+
+  // Check if password was changed after token was issued
+  if (decoded.iat && user?.passwordChangedAt) {
+    const passwordChangeTimestamp = new Date(user?.passwordChangedAt).getTime();
+    const tokenIssuedTimestamp = decoded?.iat * 1000;
+
+    if (passwordChangeTimestamp > tokenIssuedTimestamp) {
+      throw new BadRequestException('Password was changed. Please login again', ErrorCodes.BAD_REQUEST);
+    }
+  }
+
+  const { accessToken } = generateTokens(user);
+
+  res.status(200).json({
+    success: true,
+    data: {
+      accessToken,
     },
-    10,
-  );
-
-  res.cookie('access', accessToken, {
-    httpOnly: true,
-    secure: config.nodeEnv === 'production',
-    maxAge: 5 * 60 * 1000,
   });
+};
 
-  logger.info('Access token sent successfully');
-  response(res, 200, 'token sent successfully');
+// NOTE: Logout - Revoke refresh token
+export const logout = async (req: Request, res: Response, next: NextFunction) => {
+  const { refreshTokenId } = req.body;
+  const userId = (req.user as any)?.id;
+
+  try {
+    // If refreshTokenId is provided, revoke that specific token
+    if (refreshTokenId) {
+      await revokeRefreshToken(refreshTokenId);
+    } else if (userId) {
+      // If no token provided but user is authenticated, revoke all user tokens
+      await revokeAllUserTokens(userId);
+    } else {
+      throw new BadRequestException('Refresh token ID or authentication required', ErrorCodes.BAD_REQUEST);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Logged out successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// NOTE: Get Logged In User
+export const getUser = async (req: Request, res: Response) => {
+  const userId = (req.user as any).id;
+  const user = await FindUserById(userId);
+
+  if (!user) throw new UserNotFoundException();
+
+  res.status(200).json({
+    success: true,
+    message: 'user fetched success',
+    data: {
+      email: user.email,
+    },
+  });
 };
