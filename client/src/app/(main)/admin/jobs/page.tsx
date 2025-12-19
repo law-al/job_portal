@@ -106,15 +106,17 @@ export default async function JobsManagement() {
       <header className='bg-white border-b border-gray-200 px-8 py-6'>
         <div className='flex items-center justify-between'>
           <h2 className='text-3xl font-bold text-gray-900'>Jobs Management</h2>
-          <Button
-            asChild
-            className='flex items-center gap-2 px-6 py-6 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors'
-          >
-            <Link href='/admin/jobs/add'>
-              <Plus size={20} />
-              Add New Job
-            </Link>
-          </Button>
+          {jobs && jobs.length > 0 ? (
+            <Button
+              asChild
+              className='flex items-center gap-2 px-6 py-6 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors'
+            >
+              <Link href='/admin/jobs/add'>
+                <Plus size={20} />
+                Add New Job
+              </Link>
+            </Button>
+          ) : null}
         </div>
       </header>
 
@@ -122,45 +124,71 @@ export default async function JobsManagement() {
       <main className='flex-1 overflow-y-auto p-8'>
         {/* Filters */}
         <div className='bg-white rounded-xl border border-gray-200 mb-6'>
-          <JobsFilter />
-
-          {/* Table */}
-          <div className='overflow-x-auto'>
-            <table className='w-full'>
-              <TableHeader headers={tableHeaders} />
-              <JobsTableBody jobs={jobs} />
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <div className='px-6 py-4 border-t border-gray-200 flex items-center justify-between'>
-            <p className='text-sm text-gray-500'>
-              Showing <span className='font-medium'>1</span> to{' '}
-              <span className='font-medium'>{jobs.length}</span> of{' '}
-              <span className='font-medium'>{jobs.length}</span> results
-            </p>
-            <div className='flex gap-2'>
-              <button className='p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
-                <ChevronLeft size={20} className='text-gray-600' />
-              </button>
-              <button className='px-3 py-2 bg-blue-600 text-white rounded-lg font-medium'>
-                1
-              </button>
-              <button className='px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
-                2
-              </button>
-              <button className='px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
-                3
-              </button>
-              <span className='px-3 py-2'>...</span>
-              <button className='px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
-                12
-              </button>
-              <button className='p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
-                <ChevronRight size={20} className='text-gray-600' />
-              </button>
+          {/* Table or Empty State */}
+          {!jobs || jobs.length === 0 ? (
+            <div className='flex flex-col items-center justify-center py-16 px-6'>
+              <div className='w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4'>
+                <Plus size={24} className='text-gray-400' />
+              </div>
+              <h3 className='text-lg font-semibold text-gray-900 mb-2'>
+                No jobs found
+              </h3>
+              <p className='text-sm text-gray-500 text-center max-w-md mb-6'>
+                {`You haven't posted any jobs yet. Create your first job posting to
+                start attracting talented candidates.`}
+              </p>
+              <Button
+                asChild
+                className='flex items-center gap-2 px-6 py-6 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors'
+              >
+                <Link href='/admin/jobs/add'>
+                  <Plus size={20} />
+                  Add New Job
+                </Link>
+              </Button>
             </div>
-          </div>
+          ) : (
+            <>
+              {/* Table */}
+              <JobsFilter />
+              <div className='overflow-x-auto'>
+                <table className='w-full'>
+                  <TableHeader headers={tableHeaders} />
+                  <JobsTableBody jobs={jobs} />
+                </table>
+              </div>
+
+              {/* Pagination */}
+              <div className='px-6 py-4 border-t border-gray-200 flex items-center justify-between'>
+                <p className='text-sm text-gray-500'>
+                  Showing <span className='font-medium'>1</span> to{' '}
+                  <span className='font-medium'>{jobs.length}</span> of{' '}
+                  <span className='font-medium'>{jobs.length}</span> results
+                </p>
+                <div className='flex gap-2'>
+                  <button className='p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
+                    <ChevronLeft size={20} className='text-gray-600' />
+                  </button>
+                  <button className='px-3 py-2 bg-blue-600 text-white rounded-lg font-medium'>
+                    1
+                  </button>
+                  <button className='px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
+                    2
+                  </button>
+                  <button className='px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
+                    3
+                  </button>
+                  <span className='px-3 py-2'>...</span>
+                  <button className='px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
+                    12
+                  </button>
+                  <button className='p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
+                    <ChevronRight size={20} className='text-gray-600' />
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </main>
     </>

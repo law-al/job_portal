@@ -6,6 +6,11 @@ import type { NextAuthOptions } from 'next-auth';
 
 async function refreshAccessToken(token: any) {
   try {
+    // Check if refreshTokenHash exists
+    if (!token.refreshTokenHash) {
+      throw new Error('No refresh token available');
+    }
+
     const response = await fetch(
       `http://localhost:3000/api/v1/auth/refresh/${token.refreshTokenHash}`,
       {
@@ -17,21 +22,28 @@ async function refreshAccessToken(token: any) {
     );
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'unauthorized');
+      const errorData = await response
+        .json()
+        .catch(() => ({ message: 'Token refresh failed' }));
+      throw new Error(errorData.message || 'Token refresh failed');
     }
 
     const { data } = await response.json();
+
+    if (!data?.accessToken) {
+      throw new Error('Invalid response from refresh endpoint');
+    }
 
     return {
       ...token,
       accessToken: data.accessToken,
       accessTokenExpiresAt: Date.now() + 15 * 60 * 1000,
+      error: undefined, // Clear any previous errors
     };
   } catch (error: any) {
     return {
       ...token,
-      error: error?.message || 'unauthorized',
+      error: error?.message || 'Failed to refresh token',
     };
   }
 }
@@ -46,7 +58,7 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          return null;
+          throw new Error('Email and password are required');
         }
         try {
           const res = await fetch('http://localhost:3000/api/v1/auth/login', {
@@ -59,14 +71,22 @@ export const authOptions: NextAuthOptions = {
               password: credentials.password,
             }),
           });
+
+          if (!res.ok) {
+            const errorData = await res
+              .json()
+              .catch(() => ({ message: 'Login failed' }));
+            throw new Error(errorData.message || 'Invalid email or password');
+          }
+
           const { data: user } = await res.json();
-          if (res.ok && user) {
+          if (user) {
             return user;
           }
-          return null;
-        } catch (error) {
-          console.error('Authorization error:', error);
-          return null;
+          throw new Error('Invalid response from server');
+        } catch (error: any) {
+          // Re-throw to show proper error message
+          throw new Error(error.message || 'An error occurred during login');
         }
       },
     }),
@@ -108,6 +128,7 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
     async jwt({ token, user }) {
+      // Initial sign in
       if (user) {
         token.role = (user as any).role;
         token.id = (user as any).id;
@@ -116,15 +137,19 @@ export const authOptions: NextAuthOptions = {
         token.accessToken = (user as any).accessToken;
         token.refreshTokenHash = (user as any).refreshTokenHash;
         token.accessTokenExpiresAt = Date.now() + 15 * 60 * 1000;
+        token.error = undefined; // Clear any previous errors
+        return token;
       }
 
+      // Return previous token if the access token has not expired yet
       if (
         token.accessTokenExpiresAt &&
-        Date.now() < token?.accessTokenExpiresAt
+        Date.now() < token.accessTokenExpiresAt
       ) {
         return token;
       }
 
+      // Access token has expired, try to update it
       return refreshAccessToken(token);
     },
     async session({ session, token }) {

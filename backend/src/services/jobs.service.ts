@@ -126,6 +126,81 @@ export const FindJobBySlug = async (slug: string) => {
   }
 };
 
+export const FindJobId = async (id: string) => {
+  try {
+    return await prisma.job.findUnique({
+      where: {
+        id,
+      },
+    });
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Public: Get a single job by slug with similar jobs
+export const GetJobWithSimilar = async (slug: string) => {
+  try {
+    const job = await prisma.job.findUnique({
+      where: { slug },
+      include: {
+        company: {
+          select: {
+            description: true,
+            id: true,
+            name: true,
+            logo: true,
+          },
+        },
+      },
+    });
+
+    if (!job) {
+      throw new NotFoundException(`job with slug ${slug} not found`);
+    }
+
+    const similarJobs = await prisma.job.findMany({
+      where: {
+        id: {
+          not: job.id,
+        },
+        status: 'OPEN',
+        isClosed: false,
+        OR: [
+          // Same company
+          { companyId: job.companyId },
+          // Same job type
+          { jobType: job.jobType },
+          // Same location (case-insensitive)
+          {
+            location: {
+              equals: job.location,
+              mode: 'insensitive',
+            },
+          },
+        ],
+      },
+      include: {
+        company: {
+          select: {
+            id: true,
+            name: true,
+            logo: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 6,
+    });
+
+    return { job, similarJobs };
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const CloseJob = async (id: string) => {
   try {
     await prisma.job.update({
@@ -249,6 +324,128 @@ export const GetPipelineStages = async (companyId: string, pipelineName: string)
   try {
     const pipeline = await FindPipelineByName(companyId, pipelineName);
     return pipeline;
+  } catch (error) {
+    throw error;
+  }
+};
+
+export const GetPipelineStagesByJobId = async (jobId: string) => {
+  try {
+    const pipeline = await prisma.pipelineStage.findMany({
+      where: {
+        jobId,
+      },
+      orderBy: {
+        order: 'asc',
+      },
+    });
+    return pipeline;
+  } catch (error) {
+    throw error;
+  }
+};
+
+// Get all jobs (public endpoint for job seekers)
+export const GetAllJobs = async (options?: {
+  page?: number;
+  limit?: number;
+  status?: 'OPEN' | 'CLOSE';
+  jobType?: string;
+  experienceLevel?: string;
+  location?: string;
+  isRemote?: boolean;
+  search?: string;
+}) => {
+  try {
+    const page = options?.page || 1;
+    const limit = options?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      status: options?.status || 'OPEN', // Default to only open jobs
+      isClosed: false,
+    };
+
+    // Add filters
+    if (options?.jobType) {
+      where.jobType = options.jobType;
+    }
+
+    if (options?.experienceLevel) {
+      where.experienceLevel = options.experienceLevel;
+    }
+
+    if (options?.location) {
+      where.location = {
+        contains: options.location,
+        mode: 'insensitive',
+      };
+    }
+
+    if (options?.isRemote !== undefined) {
+      where.isRemote = options.isRemote;
+    }
+
+    if (options?.search) {
+      where.OR = [
+        {
+          title: {
+            contains: options.search,
+            mode: 'insensitive',
+          },
+        },
+        {
+          description: {
+            contains: options.search,
+            mode: 'insensitive',
+          },
+        },
+        {
+          company: {
+            name: {
+              contains: options.search,
+              mode: 'insensitive',
+            },
+          },
+        },
+      ];
+    }
+
+    const [jobs, total] = await Promise.all([
+      prisma.job.findMany({
+        where,
+        include: {
+          company: {
+            select: {
+              id: true,
+              name: true,
+              logo: true,
+            },
+          },
+          _count: {
+            select: {
+              applications: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+      prisma.job.count({ where }),
+    ]);
+
+    return {
+      jobs,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   } catch (error) {
     throw error;
   }

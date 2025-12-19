@@ -8,7 +8,7 @@ export async function proxy(request: Request) {
 
   // 1. Block logged-in users from login/register
   if (session && (pathname === '/login' || pathname === '/register')) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   // 2. Block unauthenticated users from admin/dashboard
@@ -25,7 +25,7 @@ export async function proxy(request: Request) {
     session.user.role === 'USER' &&
     pathname.startsWith('/admin')
   ) {
-    return NextResponse.redirect(new URL('/dashboard', request.url));
+    return NextResponse.redirect(new URL('/', request.url));
   }
 
   // 4. COMPANY cannot see user dashboard

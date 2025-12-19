@@ -1,6 +1,8 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import axios, { AxiosError } from 'axios';
 
-const api = axios.create({
+export const api = axios.create({
   baseURL: 'http://localhost:3000/api/v1/',
   withCredentials: true,
 });

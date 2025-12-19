@@ -15,6 +15,10 @@ interface Config {
   cloudinaryApiSecret: string;
   googleClientId: string;
   googleClientSecret: string;
+  AwsAccessKey: string;
+  AwsSecretKey: string;
+  AwsRegion: string;
+  AwsBucketName: string;
 }
 
 const config: Config = {
@@ -30,6 +34,10 @@ const config: Config = {
   cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET!,
   googleClientId: process.env.GOOGLE_CLIENT_ID!,
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+  AwsAccessKey: process.env.AWS_ACCESS_KEY!,
+  AwsSecretKey: process.env.AWS_SECRET_KEY!,
+  AwsRegion: process.env.AWS_REGION!,
+  AwsBucketName: process.env.AWS_BUCKET_NAME!,
 };
 
 export default config;

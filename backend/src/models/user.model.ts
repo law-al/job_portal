@@ -15,7 +15,7 @@ export const RegisterSchema = z.object({
     .toLowerCase()
     .trim(),
 
-  role: UserRoleEnum,
+  role: UserRoleEnum.optional(),
 
   password: z
     .string({
@@ -42,24 +42,15 @@ export const RegisterUserCompanySchema = z.object({
     .toLowerCase()
     .trim(),
 
-  name: z
-    .string()
-    .min(1, 'Name is required')
-    .max(255, 'Name must be less than 255 characters'),
+  name: z.string().min(1, 'Name is required').max(255, 'Name must be less than 255 characters'),
 
   description: z.string().min(1, 'Description is required'),
 
-  website: z
-    .string()
-    .url('Must be a valid URL')
-    .max(255, 'Website URL must be less than 255 characters'),
+  website: z.string().url('Must be a valid URL').max(255, 'Website URL must be less than 255 characters'),
 
   address: z.string().min(1, 'Address is required'),
 
-  logo: z
-    .string()
-    .url('Must be a valid URL')
-    .max(255, 'Logo URL must be less than 255 characters'),
+  logo: z.string().url('Must be a valid URL').max(255, 'Logo URL must be less than 255 characters'),
 
   password: z
     .string({

@@ -21,6 +21,7 @@ import { protect } from '../middlewares/protect.js';
 import { checkCompanyRole, checkUserRole } from '../middlewares/checkRole.js';
 import passport from 'passport';
 import upload from '../middlewares/multer.js';
+import { verifyCompanyMember } from '../middlewares/verifyCompanyMember.js';
 
 const authRoute: Router = Router();
 
@@ -31,7 +32,7 @@ authRoute.post('/register', asyncHandler(register));
 authRoute.post('/register-company', upload.single('logo'), asyncHandler(registerUserCompany));
 // login
 authRoute.post('/login', asyncHandler(login));
-authRoute.post('/invite/:companyId', protect, checkCompanyRole(['ADMIN']), asyncHandler(inviteUser));
+authRoute.post('/invite/:id', protect, verifyCompanyMember, checkCompanyRole(['ADMIN']), asyncHandler(inviteUser));
 authRoute.get('/invite/check', asyncHandler(checkInvite));
 authRoute.post('/accept', asyncHandler(acceptInvite));
 authRoute.get('/verify', asyncHandler(verifyAccount));

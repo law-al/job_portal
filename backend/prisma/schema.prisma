@@ -11,6 +11,7 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+  // url      = env("DATABASE_URL")
 }
 
 enum UserRole {
@@ -107,6 +108,7 @@ model User {
   invitee    Invitation[]
   applicants Application[]
 
+
   @@unique([id])
   @@unique([providerId])
   @@index([email])
@@ -146,7 +148,7 @@ model UserCompany {
   user    User    @relation(fields: [userId], references: [id])
   company Company @relation(fields: [companyId], references: [id])
 
-  applicant Application[]
+  assignedApplications Application[] @relation("AssignedApplications")
 
   @@unique([userId, companyId])
   @@map("user_companies")
@@ -212,7 +214,7 @@ model PipelineStage {
   name  String @db.VarChar(255)
   order Int
 
-  job          Job           @relation(fields: [jobId], references: [id])
+  job          Job            @relation(fields: [jobId], references: [id])
   applications Application[]
 
   @@map("pipelineStages")
@@ -222,22 +224,30 @@ model Application {
   id              String            @id @default(uuid()) @db.Uuid()
   jobId           String            @db.Uuid()
   userId          String            @db.Uuid()
-  resumeUrl       String
-  coverLetter     String            @db.Text
-  expectedSalary  Int
+  firstName       String            @db.VarChar(100)
+  lastName        String            @db.VarChar(100)
+  email           String            @db.VarChar(255)
+  phone           String            @db.VarChar(20)
   currentLocation String            @db.VarChar(255)
-  portfolioUrl    String
+  linkedin        String?           @db.VarChar(255)
+  coverLetter     String?           @db.Text
+  expectedSalary  Int?
+  portfolioUrl    String?
+  resumeId       String?
+  documentsIds    String[]
   status          ApplicationStatus @default(APPLIED)
-  stageId         String            @db.Uuid()
-  assignedTo      String            @db.Uuid()
+  stageId         String?           @db.Uuid()
+  assignedTo      String?           @db.Uuid()
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
-  job           Job           @relation(fields: [jobId], references: [id])
-  applicant     User          @relation(fields: [userId], references: [id])
-  pipelineStage PipelineStage @relation(fields: [stageId], references: [id])
-  assigned      UserCompany   @relation(fields: [assignedTo], references: [id])
+  job             Job                @relation(fields: [jobId], references: [id])
+  applicant       User               @relation(fields: [userId], references: [id])
+  pipelineStage   PipelineStage?     @relation(fields: [stageId], references: [id])
+  assigned        UserCompany?       @relation("AssignedApplications", fields: [assignedTo], references: [id])
 
   @@index([id])
+  @@index([jobId])
+  @@index([userId])
   @@map("applications")
 }

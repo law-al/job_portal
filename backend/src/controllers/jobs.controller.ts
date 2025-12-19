@@ -11,6 +11,8 @@ import {
   FindCompanyJob,
   FindCompanyPipelines,
   GetPipelineStages,
+  GetAllJobs,
+  GetJobWithSimilar,
 } from '../services/jobs.service.js';
 import { ErrorCodes } from '../exceptions/index.js';
 
@@ -209,4 +211,96 @@ export const getPipelineStages = async (req: Request, res: Response, next: NextF
     message: 'pipeline stages fetched successfully',
     data: { stages: stages || [] },
   });
+};
+
+// Get all jobs (public endpoint for job seekers)
+export const getAllJobs = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { page, limit, status, jobType, experienceLevel, location, isRemote, search } = req.query;
+
+    const options: any = {};
+
+    // Parse pagination
+    if (page) {
+      const parsedPage = parseInt(page as string, 10);
+      if (isNaN(parsedPage) || parsedPage < 1) {
+        throw new BadRequestException('Page must be a positive integer', ErrorCodes.BAD_REQUEST);
+      }
+      options.page = parsedPage;
+    }
+
+    if (limit) {
+      const parsedLimit = parseInt(limit as string, 10);
+      if (isNaN(parsedLimit) || parsedLimit < 1 || parsedLimit > 100) {
+        throw new BadRequestException('Limit must be between 1 and 100', ErrorCodes.BAD_REQUEST);
+      }
+      options.limit = parsedLimit;
+    }
+
+    // Parse filters
+    if (status && (status === 'OPEN' || status === 'CLOSE')) {
+      options.status = status;
+    }
+
+    if (jobType && typeof jobType === 'string') {
+      options.jobType = jobType;
+    }
+
+    if (experienceLevel && typeof experienceLevel === 'string') {
+      options.experienceLevel = experienceLevel;
+    }
+
+    if (location && typeof location === 'string') {
+      options.location = location;
+    }
+
+    if (isRemote !== undefined) {
+      if (typeof isRemote === 'string') {
+        options.isRemote = isRemote === 'true';
+      } else if (typeof isRemote === 'boolean') {
+        options.isRemote = isRemote;
+      }
+    }
+
+    if (search && typeof search === 'string') {
+      options.search = search;
+    }
+
+    const result = await GetAllJobs(options);
+
+    res.status(200).json({
+      success: true,
+      message: 'jobs fetched successfully',
+      data: {
+        jobs: result.jobs,
+        pagination: result.pagination,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Get a single job (public) + similar jobs
+export const getJob = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { slug } = req.params;
+
+    if (!slug) {
+      throw new BadRequestException('a job slug is required', ErrorCodes.MISSING_JOB_ID);
+    }
+
+    const { job, similarJobs } = await GetJobWithSimilar(slug);
+
+    res.status(200).json({
+      success: true,
+      message: 'job fetched successfully',
+      data: {
+        job,
+        similarJobs,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
 };

@@ -29,8 +29,7 @@ type LoginSchemaType = z.infer<typeof LoginSchema>;
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loginErrors, setLoginErrors] = useState<string>('');
-
-  // const { data: session, status } = useSession();
+  const [isLoading, setIsLoading] = useState(false);
 
   const router = useRouter();
 
@@ -43,19 +42,32 @@ export default function LoginPage() {
   });
 
   const onSubmit = async (data: LoginSchemaType) => {
-    const result = await signIn('credentials', {
-      redirect: false,
-      email: data.email,
-      password: data.password,
-    });
+    setIsLoading(true);
+    setLoginErrors('');
 
-    if (result?.error) {
-      console.log(result.error);
-      setLoginErrors('Invalid Credentials');
-    }
+    try {
+      const result = await signIn('credentials', {
+        redirect: false,
+        email: data.email,
+        password: data.password,
+      });
 
-    if (result?.ok) {
-      router.replace('/dashboard');
+      if (result?.error) {
+        // Parse error message if available
+        const errorMessage =
+          result.error === 'CredentialsSignin'
+            ? 'Invalid email or password. Please try again.'
+            : result.error;
+        setLoginErrors(errorMessage);
+      }
+
+      if (result?.ok) {
+        router.replace('/dashboard');
+      }
+    } catch {
+      setLoginErrors('An unexpected error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -193,10 +205,10 @@ export default function LoginPage() {
               {/* Login Button */}
               <button
                 type='submit'
-                // disabled={}
+                disabled={isLoading}
                 className={`w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition-colors disabled:cursor-not-allowed disabled:bg-blue-300/80`}
               >
-                Log In
+                {isLoading ? 'Logging in...' : 'Log In'}
               </button>
 
               {/* Divider */}

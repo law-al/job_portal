@@ -240,10 +240,12 @@ export const resendPasswordResetLink = async (req: Request, res: Response, next:
 // NOTE: Invite user
 export const inviteUser = async (req: Request, res: Response, next: NextFunction) => {
   const userId = (req.user as any).id;
+  const companyId = (req as any).company.id;
 
   const email = req.body.email;
   const role = (req.body.role as string).toUpperCase() as CompanyRole;
-  const { companyId } = req.params;
+
+  console.log(companyId);
 
   if (!email) throw new BadRequestException('An email must be provided', ErrorCodes.MISSING_REQUIRED_FIELD);
   if (!role) throw new BadRequestException('A role must be provided', ErrorCodes.MISSING_REQUIRED_FIELD);

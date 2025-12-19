@@ -14,24 +14,17 @@ export const cloudinaryFolderName = 'job-portal/company/logos';
 
 export const uploadToCloudinary = (
   fileBuffer: Buffer,
+
   folderName: string,
 ): Promise<UploadApiResponse> => {
-  const sanitizedName = folderName
-    .replace(/[^a-zA-Z0-9-_]/g, '_')
-    .replace(/\s+/g, '_');
+  const sanitizedName = folderName.replace(/[^a-zA-Z0-9-_]/g, '_').replace(/\s+/g, '_');
 
   const folder = `${sanitizedName}/logos`;
 
-  const publicId = `${sanitizedName}_${new Date()
-    .toISOString()
-    .replace(/[:.]/g, '-')}`;
+  const publicId = `${sanitizedName}_${new Date().toISOString().replace(/[:.]/g, '-')}`;
 
   try {
-    if (!fileBuffer || fileBuffer.length === 0)
-      throw new BadRequestException(
-        'No file uploaded',
-        ErrorCodes.INVALID_FILE_TYPE,
-      );
+    if (!fileBuffer || fileBuffer.length === 0) throw new BadRequestException('No file uploaded', ErrorCodes.INVALID_FILE_TYPE);
 
     return new Promise((resolve, reject) => {
       cloudinary.uploader

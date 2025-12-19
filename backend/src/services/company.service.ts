@@ -98,7 +98,7 @@ export const FindCompaniesByUserID = async (id: string) => {
 // Returns the first company the user is a member of (any role)
 export const FindCompanyByUserID = async (id: string) => {
   try {
-    const company = await prisma.userCompany.findFirst({
+    const companyMember = await prisma.userCompany.findFirst({
       where: {
         userId: id,
         status: 'ACTIVE', // Only get active memberships
@@ -116,7 +116,7 @@ export const FindCompanyByUserID = async (id: string) => {
       },
     });
 
-    return company;
+    return companyMember;
   } catch (error) {
     throw error;
   }
@@ -434,18 +434,28 @@ export const InviteUser = async (email: string, role: CompanyRole, companyId: st
       throw new ConflictException('A pending invitation already exists for this email and company');
     }
 
-    // Check if user already exists and is already part of the company
+    // Check if user already exists and is already part of ANY company
     const existingUser = await prisma.user.findUnique({
       where: { email },
       include: {
         company: {
-          where: { id: companyId },
+          where: {
+            status: 'ACTIVE', // Only check active memberships
+          },
         },
       },
     });
 
     if (existingUser && existingUser.company.length > 0) {
-      throw new ConflictException('User is already a member of this company');
+      // Check if user is already part of this specific company
+      const isPartOfThisCompany = existingUser.company.some((uc) => uc.companyId === companyId);
+
+      if (isPartOfThisCompany) {
+        throw new ConflictException('User is already a member of this company');
+      }
+
+      // User is part of a different company
+      throw new ConflictException('User is already a member of another company. A user can only be associated with one company at a time.');
     }
 
     // Generate token
@@ -548,6 +558,29 @@ export const AcceptInvitedUser = async ({ email, password }: { email: string; pa
         user = result;
       }
 
+      // Check if user is already a member of any other company
+      const existingCompanyMembership = await tx.userCompany.findFirst({
+        where: {
+          userId: user.id,
+          status: 'ACTIVE', // Only check active memberships
+          companyId: {
+            not: invitation.companyId, // Exclude the company from the invitation
+          },
+        },
+        include: {
+          company: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      });
+
+      if (existingCompanyMembership) {
+        throw new ConflictException(`User is already a member of ${existingCompanyMembership.company.name}. A user can only be associated with one company at a time.`);
+      }
+
       await tx.userCompany.upsert({
         where: {
           userId_companyId: {
@@ -557,6 +590,7 @@ export const AcceptInvitedUser = async ({ email, password }: { email: string; pa
         },
         update: {
           role: invitation.role,
+          status: 'ACTIVE', // Ensure status is active when updating
         },
         create: {
           userId: user.id,

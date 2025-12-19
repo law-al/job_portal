@@ -4,7 +4,7 @@ import FormError from '@/components/FormError';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { BsGoogle, BsLinkedin } from 'react-icons/bs';
 import { FiEye, FiEyeOff } from 'react-icons/fi';
@@ -15,7 +15,7 @@ import api from '@/lib/api';
 import EmailVerification from '@/components/EmailVerification';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
-import { signIn, useSession } from 'next-auth/react';
+import { signIn } from 'next-auth/react';
 
 const RegisterSchema = z.object({
   email: z
@@ -52,7 +52,6 @@ export default function JobSeekerSignUp() {
   const [registrationSuccessEmail, setRegistrationSuccessEmail] = useState('');
   const [formPass, setFormPass] = useState<string>('');
   const [registrationError, setRegistrationError] = useState<string>('');
-  const { data: session, status } = useSession();
 
   const router = useRouter();
 
@@ -64,21 +63,39 @@ export default function JobSeekerSignUp() {
     onSuccess: async (data) => {
       setRegistrationSuccess(true);
       setRegistrationSuccessEmail(data.email);
+      setRegistrationError('');
 
+      // Auto-login after successful registration
       if (formPass) {
-        await signIn('credentials', {
-          email: data.email,
-          password: formPass,
-          redirect: false,
-        });
+        try {
+          await signIn('credentials', {
+            email: data.email,
+            password: formPass,
+            redirect: false,
+          });
+        } catch (loginError) {
+          // Login failure is not critical - user can login manually
+          console.error('Auto-login failed:', loginError);
+        }
       }
 
       setFormPass('');
-      toast('Registration successful. Please verify email');
+      toast.success(
+        'Registration successful! Please check your email to verify your account.'
+      );
     },
-    onError: (error) => {
+    onError: (error: unknown) => {
       setRegistrationSuccess(false);
-      console.error('Registration failed:', error);
+      const axiosError = error as {
+        response?: { data?: { message?: string } };
+        message?: string;
+      };
+      const errorMessage =
+        axiosError?.response?.data?.message ||
+        axiosError?.message ||
+        'Registration failed. Please try again.';
+      setRegistrationError(errorMessage);
+      toast.error(errorMessage);
     },
   });
 
@@ -183,6 +200,12 @@ export default function JobSeekerSignUp() {
                 <p className='text-gray-600'>
                   Get started by creating your account below.
                 </p>
+
+                {registrationError && (
+                  <div className='mt-4 p-3 bg-red-50 border border-red-200 rounded-lg'>
+                    <p className='text-sm text-red-800'>{registrationError}</p>
+                  </div>
+                )}
               </div>
 
               {/* Social Sign Up Buttons */}

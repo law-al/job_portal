@@ -1,4 +1,4 @@
-import { MoreVertical, ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import UserFilter from './components/UserFilter';
 import TableHeader from '@/components/TableHeader';
 import UserTableBody from './components/UserTableBody';
@@ -25,6 +25,8 @@ export interface UserResponse {
 export default async function UsersManagement() {
   const session = await getServerSession(authOptions);
 
+  console.log(session);
+
   if (session?.user.error) {
     throw new Error('unauthorized');
   }
@@ -34,7 +36,7 @@ export default async function UsersManagement() {
     options: {
       credentials: 'include',
       headers: {
-        Authorization: `Berear ${session?.user.accessToken}`,
+        Authorization: `Bearer ${session?.user.accessToken}`,
       },
     },
     refreshTokenHash: session?.user.refreshTokenHash,
@@ -62,7 +64,7 @@ export default async function UsersManagement() {
               Manage, verify, and suspend users across the platform.
             </p>
           </div>
-          <AddUser />
+          {users && users.length > 0 ? <AddUser /> : null}
         </div>
       </header>
 
@@ -70,32 +72,50 @@ export default async function UsersManagement() {
       <main className='flex-1 overflow-y-auto p-8'>
         {/* Filters */}
         <div className='bg-white rounded-xl border border-gray-200 mb-6'>
-          <UserFilter />
-
-          {/* Table */}
-          <div className='overflow-x-auto'>
-            <table className='w-full'>
-              <TableHeader headers={tableHeaders} />
-              <UserTableBody users={users} />
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <div className='px-6 py-4 border-t border-gray-200 flex items-center justify-between'>
-            <p className='text-sm text-gray-500'>
-              Showing <span className='font-medium'>1</span> to{' '}
-              <span className='font-medium'>5</span> of{' '}
-              <span className='font-medium'>150</span> users
-            </p>
-            <div className='flex gap-2'>
-              <button className='p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
-                <ChevronLeft size={20} className='text-gray-600' />
-              </button>
-              <button className='p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
-                <ChevronRight size={20} className='text-gray-600' />
-              </button>
+          {/* Table or Empty State */}
+          {!users || users.length === 0 ? (
+            <div className='flex flex-col items-center justify-center py-16 px-6'>
+              <div className='w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4'>
+                <Plus size={24} className='text-gray-400' />
+              </div>
+              <h3 className='text-lg font-semibold text-gray-900 mb-2'>
+                No users found
+              </h3>
+              <p className='text-sm text-gray-500 text-center max-w-md mb-6'>
+                There are no users in your company yet. Start by inviting team
+                members to join your organization.
+              </p>
+              <AddUser />
             </div>
-          </div>
+          ) : (
+            <>
+              {/* Table */}
+              <UserFilter />
+              <div className='overflow-x-auto'>
+                <table className='w-full'>
+                  <TableHeader headers={tableHeaders} />
+                  <UserTableBody users={users} />
+                </table>
+              </div>
+
+              {/* Pagination */}
+              <div className='px-6 py-4 border-t border-gray-200 flex items-center justify-between'>
+                <p className='text-sm text-gray-500'>
+                  Showing <span className='font-medium'>1</span> to{' '}
+                  <span className='font-medium'>5</span> of{' '}
+                  <span className='font-medium'>150</span> users
+                </p>
+                <div className='flex gap-2'>
+                  <button className='p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
+                    <ChevronLeft size={20} className='text-gray-600' />
+                  </button>
+                  <button className='p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
+                    <ChevronRight size={20} className='text-gray-600' />
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </main>
     </>

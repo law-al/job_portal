@@ -9,12 +9,14 @@ import { createHash } from '../utils/createHash.js';
 import { ErrorCodes } from '../exceptions/index.js';
 
 // NOTE: Find User By Email
+// Returns null if user doesn't exist (doesn't throw)
 export const FindUserByEmail = async (email: string) => {
   try {
     return await prisma.user.findUnique({
       where: { email },
     });
-  } catch {
+  } catch (error) {
+    logger.error('Error finding user by email:', error);
     throw new UserNotFoundException();
   }
 };
@@ -35,10 +37,19 @@ export const RegisterUser = async (body: any) => {
   try {
     const validatedBody = RegisterSchema.parse(body);
 
+    // Check if user already exists
+    const existingUser = await FindUserByEmail(validatedBody.email);
+    if (existingUser) {
+      throw new BadRequestException('Email already in use', ErrorCodes.EMAIL_ALREADY_EXISTS);
+    }
+
+    // Use role from validated body, default to 'USER' if not provided
+    const userRole = validatedBody.role || 'USER';
+
     const user = await prisma.user.create({
       data: {
         email: validatedBody.email,
-        role: 'USER',
+        role: userRole,
         password: hashSync(validatedBody.password, 12),
       },
     });
@@ -133,12 +144,33 @@ export const LoginUser = async (body: any) => {
     const validatedBody = LoginUserSchema.parse(body);
     const user = await FindUserByEmail(validatedBody.email);
     if (!user) throw new UserNotFoundException();
-    if (!user.password && user.providerId) return user;
-    if (!user.password) throw new BadRequestException('Password must be provided', ErrorCodes.USER_NOT_FOUND);
-    const isMatch = compareSync(validatedBody.password, user.password);
-    if (!isMatch) throw new ValidationException('Incorrect password', ErrorCodes.PASSWORD_NOT_CORRECT);
 
-    console.log(user);
+    // Check if user account is active
+    if (!user.isActive) {
+      throw new BadRequestException('Your account has been deactivated. Please contact support.', ErrorCodes.BAD_REQUEST);
+    }
+
+    // Check if user account is deleted
+    if (user.isDeleted) {
+      throw new BadRequestException('Your account has been deleted. Please contact support.', ErrorCodes.BAD_REQUEST);
+    }
+
+    // Handle OAuth users (no password)
+    if (!user.password && user.providerId) {
+      return user;
+    }
+
+    // Check if password exists
+    if (!user.password) {
+      throw new BadRequestException('Password must be provided', ErrorCodes.USER_NOT_FOUND);
+    }
+
+    // Verify password
+    const isMatch = compareSync(validatedBody.password, user.password);
+    if (!isMatch) {
+      throw new ValidationException('Incorrect password', ErrorCodes.PASSWORD_NOT_CORRECT);
+    }
+
     return user;
   } catch (error) {
     throw error;

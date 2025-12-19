@@ -27,6 +27,7 @@ export const checkUserRole = (role: UserRole) => {
 export const checkCompanyRole = (roles: CompanyRole[]) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
+      console.log('entered + 1');
       // This middleware should be used AFTER verifyCompanyMember
       // which already verifies company membership and user status
       const companyMember = (req as any).companyMember;

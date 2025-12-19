@@ -3,9 +3,25 @@ import { protect } from '../middlewares/protect.js';
 import { checkCompanyRole } from '../middlewares/checkRole.js';
 import { verifyCompanyMember } from '../middlewares/verifyCompanyMember.js';
 import asyncHandler from '../utils/catchAsync.js';
-import { closeJob, openJob, createJob, deleteJob, editJob, getCompanyJob, getCompanyJobs, getCompanyPipelines, getPipelineStages } from '../controllers/jobs.controller.js';
+import {
+  closeJob,
+  openJob,
+  createJob,
+  deleteJob,
+  editJob,
+  getCompanyJob,
+  getCompanyJobs,
+  getCompanyPipelines,
+  getPipelineStages,
+  getAllJobs,
+  getJob,
+} from '../controllers/jobs.controller.js';
 
 const jobsRoute: Router = Router();
+
+// Public routes - for job seekers
+jobsRoute.get('/all', asyncHandler(getAllJobs));
+jobsRoute.get('/:slug', asyncHandler(getJob));
 
 // GET routes - only need company membership verification
 jobsRoute.get('/:id/fetch', protect, verifyCompanyMember, asyncHandler(getCompanyJobs));

@@ -5,7 +5,9 @@ import { Share2 } from 'lucide-react';
 export default function ShareButton({ jobSlug }: { jobSlug: string }) {
   const handleShare = () => {
     if (typeof window !== 'undefined') {
-      navigator.clipboard.writeText(`${window.location.origin}/jobs/${jobSlug}`);
+      navigator.clipboard.writeText(
+        `${window.location.origin}/jobs/${jobSlug}`
+      );
     }
   };
 

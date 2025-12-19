@@ -104,23 +104,34 @@ export default function CompanyProfileSignUp() {
     onSuccess: async (data) => {
       setRegistrationSuccessMessage(data.email);
       setRegistrationSuccess(true);
+      setRegistrationFailed(false);
+      setRegistrationFailureMessage('');
 
+      // Auto-login after successful registration
       if (formPass) {
-        await signIn('credentials', {
-          email: data.email,
-          password: formPass,
-          redirect: false,
-        });
+        try {
+          await signIn('credentials', {
+            email: data.email,
+            password: formPass,
+            redirect: false,
+          });
+        } catch (loginError) {
+          // Login failure is not critical - user can login manually
+          console.error('Auto-login failed:', loginError);
+        }
       }
 
       setFormPass('');
     },
     onError: (error: AxiosError) => {
-      const status = error.status;
       /* eslint-disable @typescript-eslint/no-explicit-any */
-      const errorResponse = (error.response as any).data;
+      const errorResponse = (error.response as any)?.data;
+      const errorMessage =
+        errorResponse?.message ||
+        error.message ||
+        'Registration failed. Please try again.';
       setRegistrationFailed(true);
-      console.log(errorResponse.message, status);
+      setRegistrationFailureMessage(errorMessage);
     },
   });
 
@@ -150,7 +161,7 @@ export default function CompanyProfileSignUp() {
   const handleImageUpload = (event: ChangeEvent<HTMLInputElement>) => {
     const imageFile = event.target.files?.[0];
     if (!imageFile) {
-      setValue('logo', null);
+      setValue('logo', undefined as any);
       return;
     }
     setValue('logo', imageFile);
@@ -223,6 +234,14 @@ export default function CompanyProfileSignUp() {
                   <p className='text-gray-600 text-lg'>
                     Start finding top talent today.
                   </p>
+
+                  {registrationFailed && registrationFailureMessage && (
+                    <div className='mt-4 p-3 bg-red-50 border border-red-200 rounded-lg'>
+                      <p className='text-sm text-red-800'>
+                        {registrationFailureMessage}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <form action='' onSubmit={handleSubmit(onSubmit)}>
@@ -398,6 +417,17 @@ export default function CompanyProfileSignUp() {
                         <div className='border-2 border-gray-300 rounded-lg p-6 relative'>
                           <button
                             type='button'
+                            onClick={() => {
+                              if (logoPreview) {
+                                URL.revokeObjectURL(logoPreview);
+                              }
+                              setLogoPreview(null);
+                              setLogoFile(undefined);
+                              setValue('logo', undefined as any);
+                              if (imageRef.current) {
+                                imageRef.current.value = '';
+                              }
+                            }}
                             className='absolute top-3 right-3 bg-red-500 hover:bg-red-600 text-white rounded-full p-1.5 transition-colors'
                           >
                             <X size={16} />

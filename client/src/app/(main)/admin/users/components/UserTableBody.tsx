@@ -77,6 +77,7 @@ const UserActionsMenu = ({ user }: { user: User }) => {
   };
 
   const handleSuspendMember = (memberId: string) => {
+    console.log('my name is', memberId);
     startTransition(async () => {
       const result = await suspendUser(memberId);
 
