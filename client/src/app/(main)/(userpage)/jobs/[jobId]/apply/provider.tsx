@@ -78,6 +78,11 @@ export const ApplicationProvider = ({ children }: { children: React.ReactNode })
 
   // Send application
   const sendApplication = (formData: FormData, jobId: string) => {
+    console.log({
+      ...formData,
+      resumeId: formData.resume?.id ?? '',
+      supportingDocumentIds: formData.supportingDocuments?.map((doc) => doc.id) ?? [],
+    });
     startTransition(async () => {
       const response = await sendApplicationAction(
         {
@@ -88,7 +93,6 @@ export const ApplicationProvider = ({ children }: { children: React.ReactNode })
         jobId,
       );
 
-      console.log(response);
 
       // if (response.success) {
       //   toast.success(

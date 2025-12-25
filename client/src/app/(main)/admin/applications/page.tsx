@@ -1,72 +1,178 @@
-import { LayoutGrid, FileText, Briefcase, Users, Building2, Settings, LogOut, Search, Calendar, Download, ChevronDown, MoreVertical, Plus, Bell, ChevronRight } from 'lucide-react';
+import { Building2, Search, Calendar, Download, ChevronDown, Bell, ChevronRight } from 'lucide-react';
 import Card from './components/Card';
 import ApplicationTable from './components/ApplicationTable';
+import { fetchWithRetry } from '@/lib/fetchWithRetry';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/auth';
 
-export default function AdminApplicationsManagement() {
-  const stats = [
-    { label: 'Total Applications', value: '1,240', change: '+12%', positive: true, neutral: false },
-    { label: 'Pending Review', value: '45', change: '+5%', positive: true, neutral: false },
-    { label: 'Interview Stage', value: '12', change: '0%', positive: false, neutral: true },
-    { label: 'Hired', value: '8', change: '+2%', positive: true, neutral: false },
-  ];
+interface ApplicationResponse {
+  success: boolean;
+  data: {
+    applications: Array<{
+      id: string;
+      firstName: string;
+      lastName: string;
+      email: string;
+      phone: string;
+      status: string;
+      createdAt: string;
+      job: {
+        id: string;
+        title: string;
+        slug: string;
+      };
+      pipelineStage: {
+        id: string;
+        name: string;
+        order: number;
+      } | null;
+      assigned: {
+        id: string;
+        user: {
+          id: string;
+          email: string;
+        };
+      } | null;
+    }>;
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
+  };
+}
 
-  const applications = [
-    {
-      id: '1',
-      name: 'Sarah Smith',
-      email: 'sarah.smith@example.com',
-      avatar: '👩',
-      jobTitle: 'Senior UX Designer',
-      company: 'TechFlow Inc.',
-      appliedDate: 'Oct 24, 2023',
-      stage: 'Interview',
-      stageColor: 'blue',
-    },
-    {
-      id: '2',
-      name: 'Michael Chen',
-      email: 'm.chen@example.com',
-      avatar: '👨',
-      jobTitle: 'Product Manager',
-      company: 'Innovate Co.',
-      appliedDate: 'Oct 23, 2023',
-      stage: 'Hired',
-      stageColor: 'green',
-    },
-    {
-      id: '3',
-      name: 'James Davis',
-      email: 'james.d@example.com',
-      avatar: 'JD',
-      jobTitle: 'Frontend Developer',
-      company: 'TechFlow Inc.',
-      appliedDate: 'Oct 22, 2023',
-      stage: 'Screening',
-      stageColor: 'gray',
-    },
-    {
-      id: '4',
-      name: 'Emily Wilson',
-      email: 'emily.w@example.com',
-      avatar: '👩',
-      jobTitle: 'Marketing Lead',
-      company: 'Growth Corp',
-      appliedDate: 'Oct 20, 2023',
-      stage: 'Assessment',
-      stageColor: 'purple',
-    },
-    {
-      id: '5',
-      name: 'David Kim',
-      email: 'd.kim@example.com',
-      avatar: '👨',
-      jobTitle: 'Data Analyst',
-      company: 'DataSys',
-      appliedDate: 'Oct 19, 2023',
-      stage: 'Rejected',
-      stageColor: 'red',
-    },
+interface TransformedApplication {
+  id: string;
+  avatar: string;
+  name: string;
+  email: string;
+  jobTitle: string;
+  company: string;
+  appliedDate: string;
+  stage: string;
+  stageColor: string;
+  status: string;
+  assignedTo?: string | null;
+  assignedName?: string | null;
+}
+
+export default async function AdminApplicationsManagement() {
+  const session = await getServerSession(authOptions);
+
+  if (session?.user.error) {
+    throw new Error('unauthorized');
+  }
+
+  if (!session?.user?.companyId) {
+    return (
+      <div className="p-8">
+        <p className="text-red-600">Company ID not found. Please ensure you are associated with a company.</p>
+      </div>
+    );
+  }
+
+  let applications: TransformedApplication[] = [];
+  let stats = [
+    { label: 'Total Applications', value: '0', change: '0%', positive: false, neutral: true },
+    { label: 'Pending Review', value: '0', change: '0%', positive: false, neutral: true },
+    { label: 'Interview Stage', value: '0', change: '0%', positive: false, neutral: true },
+    { label: 'Hired', value: '0', change: '0%', positive: false, neutral: true },
   ];
+  let pagination = {
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0,
+  };
+
+  try {
+    const response = await fetchWithRetry({
+      url: `application/${session.user.companyId}/fetch`,
+      options: {
+        method: 'GET',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${(session.user as { accessToken?: string }).accessToken ?? ''}`,
+        },
+      },
+      refreshTokenHash: (session.user as { refreshTokenHash?: string }).refreshTokenHash,
+    });
+
+    if (response.ok) {
+      const data = (await response.json()) as ApplicationResponse;
+      const applicationsData = data.data?.applications || [];
+      pagination = data.data?.pagination || pagination;
+
+      // Transform the applications data to match the expected format
+      applications = applicationsData.map((app) => {
+        const firstName = app.firstName || '';
+        const lastName = app.lastName || '';
+        const fullName = `${firstName} ${lastName}`.trim() || 'Unknown';
+        const initials = firstName.charAt(0) + lastName.charAt(0) || '??';
+
+        // Get stage name or default
+        const stageName = app.pipelineStage?.name || 'Applied';
+        const stageColor = getStageColor(stageName);
+
+        // Get assigned user email or null
+        const assignedEmail = app.assigned?.user?.email || null;
+
+        return {
+          id: app.id,
+          avatar: initials,
+          name: fullName,
+          email: app.email,
+          jobTitle: app.job?.title || 'Unknown Job',
+          company: 'Your Company', // Company name could be included in the API response
+          appliedDate: new Date(app.createdAt).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          }),
+          stage: stageName,
+          stageColor,
+          status: app.status,
+          assignedTo: app.assigned?.id || null,
+          assignedName: assignedEmail,
+        };
+      });
+
+      // Calculate stats
+      const total = pagination.total;
+      const pending = applications.filter((app) => app.status === 'APPLIED').length;
+      const interviewing = applications.filter((app) => app.status === 'INTERVIEW').length;
+      const hired = applications.filter((app) => app.status === 'HIRED').length;
+
+      stats = [
+        { label: 'Total Applications', value: total.toString(), change: '0%', positive: false, neutral: true },
+        { label: 'Pending Review', value: pending.toString(), change: '0%', positive: false, neutral: true },
+        { label: 'Interview Stage', value: interviewing.toString(), change: '0%', positive: false, neutral: true },
+        { label: 'Hired', value: hired.toString(), change: '0%', positive: false, neutral: true },
+      ];
+    }
+  } catch (error) {
+    console.error('Error fetching applications:', error);
+  }
+
+  function getStageColor(stage: string): string {
+    switch (stage.toLowerCase()) {
+      case 'interview':
+        return 'blue';
+      case 'hired':
+        return 'green';
+      case 'rejected':
+        return 'red';
+      case 'screening':
+        return 'gray';
+      case 'shortlisted':
+        return 'purple';
+      default:
+        return 'gray';
+    }
+  }
 
   return (
     <div className="flex h-screen bg-gray-50">
@@ -145,7 +251,53 @@ export default function AdminApplicationsManagement() {
           </div>
 
           {/* Applications Table */}
-          <ApplicationTable applications={applications} />
+          {applications.length === 0 ? (
+            <div className="bg-white rounded-lg shadow-sm border border-gray-100 p-12 text-center">
+              <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                <Building2 className="w-8 h-8 text-gray-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">No applications found</h3>
+              <p className="text-sm text-gray-500 max-w-md mx-auto">
+                You haven&apos;t received any applications yet. Applications will appear here once candidates start applying to your job postings.
+              </p>
+            </div>
+          ) : (
+            <>
+              <ApplicationTable applications={applications} />
+              {/* Pagination */}
+              <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between mt-4">
+                <p className="text-sm text-gray-600">
+                  Showing <span className="font-semibold">{applications.length}</span> of <span className="font-semibold">{pagination.total}</span> entries
+                </p>
+                <div className="flex items-center gap-2">
+                  <button
+                    disabled={pagination.page === 1}
+                    className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </button>
+                  <button className="w-10 h-10 bg-blue-600 text-white rounded-lg font-medium">{pagination.page}</button>
+                  {pagination.totalPages > 1 && (
+                    <>
+                      <button className="w-10 h-10 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">{pagination.page + 1}</button>
+                      {pagination.totalPages > 2 && (
+                        <>
+                          <span className="px-2 text-gray-500">...</span>
+                          <button className="w-10 h-10 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">{pagination.totalPages}</button>
+                        </>
+                      )}
+                    </>
+                  )}
+                  <button
+                    disabled={pagination.page >= pagination.totalPages}
+                    className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </main>
     </div>

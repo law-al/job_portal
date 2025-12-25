@@ -56,6 +56,37 @@ export const FindCompanyById = async (id: string) => {
   }
 };
 
+// NOTE: FIND COMPANY BY JOB ID
+export const FindCompanyByJobId = async (jobId: string) => {
+  try {
+    const job = await prisma.job.findUnique({
+      where: {
+        id: jobId,
+      },
+      include: {
+        company: {
+          omit: {
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
+    });
+
+    if (!job) {
+      throw new NotFoundException(`job with id ${jobId} not found`);
+    }
+
+    if (!job.company) {
+      throw new NotFoundException(`company not found for job with id ${jobId}`);
+    }
+
+    return job.company;
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const UpdateCompany = async (id: string, body: any) => {
   try {
     const validatedBody = UpdateCompanySchema.parse(body);

@@ -83,6 +83,23 @@ enum UserCompanyStatus {
   BLOCKED
 }
 
+enum ActivityType {
+  STAGE_CHANGED
+  STATUS_CHANGED
+  ASSIGNED
+  UNASSIGNED
+  NOTE_ADDED
+  COMMENT
+  EMAIL_SENT
+  INTERVIEW_SCHEDULED
+  INTERVIEW_UPDATED
+  INTERVIEW_CANCELED
+  FILE_UPLOADED
+  PIPELINE_AUTOMATION
+  APPLICATION_CREATED
+}
+
+
 model User {
   id                              String    @id @default(uuid()) @db.Uuid()
   provider                        String?
@@ -107,7 +124,7 @@ model User {
   company    UserCompany[]
   invitee    Invitation[]
   applicants Application[]
-
+  activities ApplicationActivity[]
 
   @@unique([id])
   @@unique([providerId])
@@ -131,6 +148,7 @@ model Company {
   invitations Invitation[]
   members     UserCompany[]
   jobs        Job[]
+  applications Application[]
 
   @@unique([id])
   @@map("companies")
@@ -223,6 +241,7 @@ model PipelineStage {
 model Application {
   id              String            @id @default(uuid()) @db.Uuid()
   jobId           String            @db.Uuid()
+  companyId       String           @db.Uuid()
   userId          String            @db.Uuid()
   firstName       String            @db.VarChar(100)
   lastName        String            @db.VarChar(100)
@@ -243,11 +262,33 @@ model Application {
 
   job             Job                @relation(fields: [jobId], references: [id])
   applicant       User               @relation(fields: [userId], references: [id])
+  company         Company         @relation(fields: [companyId], references: [id])
   pipelineStage   PipelineStage?     @relation(fields: [stageId], references: [id])
   assigned        UserCompany?       @relation("AssignedApplications", fields: [assignedTo], references: [id])
+  activities      ApplicationActivity[]
 
   @@index([id])
   @@index([jobId])
   @@index([userId])
   @@map("applications")
+}
+
+model ApplicationActivity {
+  id             String      @id @default(uuid()) @db.Uuid()
+
+  applicationId  String      @db.Uuid()
+  actorId        String?     @db.Uuid()
+
+  type           ActivityType
+  message        String
+  metadata       Json?
+
+  createdAt      DateTime    @default(now())
+
+  application    Application @relation(fields: [applicationId], references: [id])
+  actor          User?       @relation(fields: [actorId], references: [id])
+
+  @@index([applicationId])
+  @@index([actorId])
+  @@map("application_activities")
 }

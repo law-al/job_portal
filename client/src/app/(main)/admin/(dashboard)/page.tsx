@@ -21,7 +21,6 @@ export interface CompanyData {
 
 export default async function AdminDashboard() {
   const session = await getServerSession(authOptions);
-  console.log(session);
 
   const stats = [
     {

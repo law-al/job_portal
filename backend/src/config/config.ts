@@ -19,6 +19,7 @@ interface Config {
   AwsSecretKey: string;
   AwsRegion: string;
   AwsBucketName: string;
+  OpenAiApiKey: string;
 }
 
 const config: Config = {
@@ -38,6 +39,7 @@ const config: Config = {
   AwsSecretKey: process.env.AWS_SECRET_KEY!,
   AwsRegion: process.env.AWS_REGION!,
   AwsBucketName: process.env.AWS_BUCKET_NAME!,
+  OpenAiApiKey: process.env.OPENAI_API_KEY!,
 };
 
 export default config;

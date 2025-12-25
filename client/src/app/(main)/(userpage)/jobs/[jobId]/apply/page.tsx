@@ -6,7 +6,6 @@ import { ApplicationProvider } from './provider';
 import ApplicationForm from './components/ApplicationForm';
 
 export default async function JobApplicationForm({ params }: { params: Promise<{ jobId: string }> }) {
-  console.log('This ran');
   const { jobId } = await params;
   return (
     <ApplicationProvider>
