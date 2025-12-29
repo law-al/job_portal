@@ -1,6 +1,6 @@
 import React from 'react';
-import { ChevronRight } from 'lucide-react';
 import Link from 'next/link';
+import AppBreadCrumb from '@/components/AppBreadCrumb';
 import { Edit } from 'lucide-react';
 import ShareButton from './components/ShareButton';
 import { fetchWithRetry } from '@/lib/fetchWithRetry';
@@ -56,10 +56,8 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
 
   if (!session?.user?.companyId) {
     return (
-      <div className='p-8'>
-        <p className='text-red-600'>
-          Company ID not found. Please ensure you are associated with a company.
-        </p>
+      <div className="p-8">
+        <p className="text-red-600">Company ID not found. Please ensure you are associated with a company.</p>
       </div>
     );
   }
@@ -187,134 +185,86 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
   return (
     <>
       {/* Breadcrumb */}
-      <div className='bg-white border-b border-gray-200 px-8 py-4'>
-        <div className='flex items-center gap-2 text-sm text-gray-500 mb-4'>
-          <Link
-            href='/admin/jobs'
-            className='hover:text-gray-700 cursor-pointer'
-          >
-            Jobs Management
-          </Link>
-          <ChevronRight size={16} />
-          <span className='text-gray-900 font-medium'>{job.title}</span>
-        </div>
+      <div className="bg-white border-b border-gray-200 px-8 py-4">
+        <AppBreadCrumb items={[{ label: 'Jobs Management', href: '/admin/jobs' }, { label: job.title }]} homeHref="/admin" className="mb-4" />
 
         {/* Job Header */}
-        <div className='flex items-center justify-between'>
-          <div className='flex items-center gap-4'>
-            <h1 className='text-3xl font-bold text-gray-900'>{job.title}</h1>
-            <span
-              className={`px-3 py-1 text-sm font-medium rounded-full ${
-                job.isClosed || job.status === 'CLOSE'
-                  ? 'bg-gray-100 text-gray-700'
-                  : 'bg-green-100 text-green-700'
-              }`}
-            >
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <h1 className="text-3xl font-bold text-gray-900">{job.title}</h1>
+            <span className={`px-3 py-1 text-sm font-medium rounded-full ${job.isClosed || job.status === 'CLOSE' ? 'bg-gray-100 text-gray-700' : 'bg-green-100 text-green-700'}`}>
               {job.isClosed || job.status === 'CLOSE' ? 'Closed' : 'Open'}
             </span>
           </div>
-          <div className='flex gap-3'>
+          <div className="flex gap-3">
             <ShareButton jobSlug={job.slug} />
             <Link
               href={`/admin/jobs/${job.slug}/edit`}
-              className='flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors'
+              className="flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
             >
               <Edit size={18} />
               Edit Job
             </Link>
           </div>
         </div>
-        <p className='text-gray-600 mt-2'>
+        <p className="text-gray-600 mt-2">
           {locationText} / {jobTypeFormatted} / Posted on {postedDate}
           {job.salary_range && ` / ${job.salary_range}`}
         </p>
       </div>
 
       {/* Main Content Area */}
-      <main className='flex-1 overflow-y-auto p-8'>
+      <main className="flex-1 overflow-y-auto p-8">
         {/* Stats Cards */}
-        <div className='grid grid-cols-4 gap-6 mb-8'>
+        <div className="grid grid-cols-4 gap-6 mb-8">
           {stats.map((stat) => (
-            <div
-              key={stat.label}
-              className='bg-white rounded-xl p-6 border border-gray-200'
-            >
-              <p className='text-sm text-gray-600 mb-2'>{stat.label}</p>
-              <p className='text-3xl font-bold text-gray-900 mb-2'>
-                {stat.value}
-              </p>
-              <p
-                className={`text-sm ${
-                  stat.positive
-                    ? 'text-green-600'
-                    : stat.neutral
-                    ? 'text-gray-500'
-                    : 'text-red-600'
-                }`}
-              >
-                {stat.change}
-              </p>
+            <div key={stat.label} className="bg-white rounded-xl p-6 border border-gray-200">
+              <p className="text-sm text-gray-600 mb-2">{stat.label}</p>
+              <p className="text-3xl font-bold text-gray-900 mb-2">{stat.value}</p>
+              <p className={`text-sm ${stat.positive ? 'text-green-600' : stat.neutral ? 'text-gray-500' : 'text-red-600'}`}>{stat.change}</p>
             </div>
           ))}
         </div>
 
-        <div className='grid grid-cols-3 gap-6'>
+        <div className="grid grid-cols-3 gap-6">
           {/* Left Column */}
-          <div className='col-span-2 space-y-6'>
+          <div className="col-span-2 space-y-6">
             {/* Job Description */}
-            <div className='bg-white rounded-xl p-6 border border-gray-200'>
-              <h2 className='text-xl font-bold text-gray-900 mb-4'>
-                Job Description
-              </h2>
-              <div className='text-gray-600 space-y-4 whitespace-pre-wrap'>
-                {job.description}
-              </div>
+            <div className="bg-white rounded-xl p-6 border border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Job Description</h2>
+              <div className="text-gray-600 space-y-4 whitespace-pre-wrap">{job.description}</div>
             </div>
 
             {/* Job Details */}
-            <div className='bg-white rounded-xl p-6 border border-gray-200'>
-              <h2 className='text-xl font-bold text-gray-900 mb-4'>
-                Job Details
-              </h2>
-              <div className='grid grid-cols-2 gap-4 text-gray-600'>
+            <div className="bg-white rounded-xl p-6 border border-gray-200">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">Job Details</h2>
+              <div className="grid grid-cols-2 gap-4 text-gray-600">
                 <div>
-                  <span className='font-medium text-gray-900'>
-                    Experience Level:
-                  </span>{' '}
+                  <span className="font-medium text-gray-900">Experience Level:</span>{' '}
                   {job.experienceLevel
                     .replace(/_/g, ' ')
                     .toLowerCase()
                     .replace(/\b\w/g, (l) => l.toUpperCase())}
                 </div>
                 <div>
-                  <span className='font-medium text-gray-900'>Job Type:</span>{' '}
-                  {jobTypeFormatted}
+                  <span className="font-medium text-gray-900">Job Type:</span> {jobTypeFormatted}
                 </div>
                 <div>
-                  <span className='font-medium text-gray-900'>Location:</span>{' '}
-                  {locationText}
+                  <span className="font-medium text-gray-900">Location:</span> {locationText}
                 </div>
                 {job.salary_range && (
                   <div>
-                    <span className='font-medium text-gray-900'>
-                      Salary Range:
-                    </span>{' '}
-                    {job.salary_range}
+                    <span className="font-medium text-gray-900">Salary Range:</span> {job.salary_range}
                   </div>
                 )}
                 {job.slot && (
                   <div>
-                    <span className='font-medium text-gray-900'>
-                      Number of Positions:
-                    </span>{' '}
-                    {job.slot}
+                    <span className="font-medium text-gray-900">Number of Positions:</span> {job.slot}
                   </div>
                 )}
                 {job.deadline && (
                   <div>
-                    <span className='font-medium text-gray-900'>
-                      Application Deadline:
-                    </span>{' '}
+                    <span className="font-medium text-gray-900">Application Deadline:</span>{' '}
                     {new Date(job.deadline).toLocaleDateString('en-US', {
                       month: 'short',
                       day: 'numeric',
@@ -323,9 +273,8 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
                   </div>
                 )}
                 {job.pipelineName && (
-                  <div className='col-span-2'>
-                    <span className='font-medium text-gray-900'>Pipeline:</span>{' '}
-                    {job.pipelineName}
+                  <div className="col-span-2">
+                    <span className="font-medium text-gray-900">Pipeline:</span> {job.pipelineName}
                   </div>
                 )}
               </div>
@@ -333,7 +282,7 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
           </div>
 
           {/* Right Column */}
-          <div className='space-y-6'>
+          <div className="space-y-6">
             {/* Hiring Pipeline */}
             {/* {job.pipelineStages && job.pipelineStages.length > 0 && (
               <div className='bg-white rounded-xl p-6 border border-gray-200'>
@@ -396,66 +345,40 @@ export default async function JobDetailPage({ params }: JobDetailPageProps) {
             )} */}
 
             {/* Applicants */}
-            <div className='bg-white rounded-xl p-6 border border-gray-200'>
-              <div className='flex items-center justify-between mb-4'>
-                <h2 className='text-lg font-bold text-gray-900'>
-                  Recent Applicants
-                </h2>
+            <div className="bg-white rounded-xl p-6 border border-gray-200">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-gray-900">Recent Applicants</h2>
                 {totalApplicants > 3 && (
-                  <Link
-                    href={`/admin/jobs/${job.slug}/applicants`}
-                    className='text-sm text-blue-600 hover:text-blue-700 font-medium'
-                  >
+                  <Link href={`/admin/jobs/${job.slug}/applicants`} className="text-sm text-blue-600 hover:text-blue-700 font-medium">
                     View All ({totalApplicants})
                   </Link>
                 )}
               </div>
               {recentApplicants.length > 0 ? (
-                <div className='space-y-4'>
+                <div className="space-y-4">
                   {recentApplicants.map((app) => {
                     const appliedDate = new Date(app.createdAt);
-                    const daysAgo = Math.floor(
-                      (Date.now() - appliedDate.getTime()) /
-                        (1000 * 60 * 60 * 24)
-                    );
-                    const timeText =
-                      daysAgo === 0
-                        ? 'Applied today'
-                        : daysAgo === 1
-                        ? 'Applied 1 day ago'
-                        : `Applied ${daysAgo} days ago`;
+                    const daysAgo = Math.floor((Date.now() - appliedDate.getTime()) / (1000 * 60 * 60 * 24));
+                    const timeText = daysAgo === 0 ? 'Applied today' : daysAgo === 1 ? 'Applied 1 day ago' : `Applied ${daysAgo} days ago`;
 
                     return (
-                      <div
-                        key={app.id}
-                        className='flex items-center justify-between'
-                      >
-                        <div className='flex items-center gap-3'>
-                          <div className='w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold text-sm'>
+                      <div key={app.id} className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-white font-semibold text-sm">
                             {app.id.slice(0, 2).toUpperCase()}
                           </div>
                           <div>
-                            <p className='text-sm font-medium text-gray-900'>
-                              Application #{app.id.slice(0, 8)}
-                            </p>
-                            <p className='text-xs text-gray-500'>{timeText}</p>
+                            <p className="text-sm font-medium text-gray-900">Application #{app.id.slice(0, 8)}</p>
+                            <p className="text-xs text-gray-500">{timeText}</p>
                           </div>
                         </div>
-                        <span
-                          className={`px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(
-                            app.status
-                          )}`}
-                        >
-                          {formatStatus(app.status)}
-                        </span>
+                        <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${getStatusColor(app.status)}`}>{formatStatus(app.status)}</span>
                       </div>
                     );
                   })}
                 </div>
               ) : (
-                <p className='text-sm text-gray-500 text-center py-4'>
-                  No applicants yet
-                </p>
+                <p className="text-sm text-gray-500 text-center py-4">No applicants yet</p>
               )}
             </div>
           </div>

@@ -1,21 +1,21 @@
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import JobsFilter from './components/JobsFilter';
 import TableHeader from '@/components/TableHeader';
 import JobsTableBody from './components/JobsTableBody';
-import { Button } from '@/components/ui/button';
-import Link from 'next/link';
 import { fetchWithRetry } from '@/lib/fetchWithRetry';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
+import JobHeader from './components/JobHeader';
+import NoJobs from './components/NoJobs';
+import Pagination from '@/components/Pagination';
 
-const tableHeaders = [
-  'job title',
-  'posted by',
-  'status',
-  'applicants',
-  'posted on',
-  'action',
-];
+const tableHeaders = ['job title', 'posted by', 'status', 'applicants', 'posted on', 'action'];
+
+interface SearchParams {
+  page?: string;
+  limit?: string;
+  status?: string;
+  search?: string;
+}
 
 interface JobResponse {
   success: boolean;
@@ -31,6 +31,12 @@ interface JobResponse {
       applications: Array<{ id: string }>;
       createdBy: string;
     }>;
+    pagination: {
+      page: number;
+      limit: number;
+      total: number;
+      totalPages: number;
+    };
   };
 }
 
@@ -44,7 +50,8 @@ interface TransformedJob {
   postedOn: string;
 }
 
-export default async function JobsManagement() {
+export default async function JobsManagement({ searchParams }: { searchParams: Promise<SearchParams> }) {
+  const params = await searchParams;
   const session = await getServerSession(authOptions);
 
   if (session?.user.error) {
@@ -53,19 +60,32 @@ export default async function JobsManagement() {
 
   if (!session?.user?.companyId) {
     return (
-      <div className='p-8'>
-        <p className='text-red-600'>
-          Company ID not found. Please ensure you are associated with a company.
-        </p>
+      <div className="p-8">
+        <p className="text-red-600">Company ID not found. Please ensure you are associated with a company.</p>
       </div>
     );
   }
 
   let jobs: TransformedJob[] = [];
+  let pagination = {
+    page: Number(params.page) || 1,
+    limit: Number(params.limit) || 20,
+    total: 0,
+    totalPages: 0,
+  };
+
+  // Build query string
+  const queryParams = new URLSearchParams();
+  if (params.page) queryParams.set('page', params.page);
+  if (params.limit) queryParams.set('limit', params.limit);
+  if (params.status) queryParams.set('status', params.status);
+  if (params.search) queryParams.set('search', params.search);
+
+  const queryString = queryParams.toString();
 
   try {
     const response = await fetchWithRetry({
-      url: `jobs/${session.user.companyId}/fetch`,
+      url: `jobs/${session.user.companyId}/fetch${queryString ? `?${queryString}` : ''}`,
       options: {
         method: 'GET',
         credentials: 'include',
@@ -80,6 +100,7 @@ export default async function JobsManagement() {
     if (response.ok) {
       const data = (await response.json()) as JobResponse;
       const jobsData = data.data?.jobs || [];
+      pagination = data.data?.pagination || pagination;
 
       // Transform the jobs data to match the expected format
       jobs = jobsData.map((job) => ({
@@ -102,90 +123,23 @@ export default async function JobsManagement() {
 
   return (
     <>
-      {/* Header */}
-      <header className='bg-white border-b border-gray-200 px-8 py-6'>
-        <div className='flex items-center justify-between'>
-          <h2 className='text-3xl font-bold text-gray-900'>Jobs Management</h2>
-          {jobs && jobs.length > 0 ? (
-            <Button
-              asChild
-              className='flex items-center gap-2 px-6 py-6 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors'
-            >
-              <Link href='/admin/jobs/add'>
-                <Plus size={20} />
-                Add New Job
-              </Link>
-            </Button>
-          ) : null}
-        </div>
-      </header>
-
-      {/* Main Content Area */}
-      <main className='flex-1 overflow-y-auto p-8'>
-        {/* Filters */}
-        <div className='bg-white rounded-xl border border-gray-200 mb-6'>
-          {/* Table or Empty State */}
+      <JobHeader hasJobs={jobs && jobs.length > 0} />
+      <main className="flex-1 overflow-y-auto p-8">
+        <div className="bg-white rounded-xl border border-gray-200 mb-6">
           {!jobs || jobs.length === 0 ? (
-            <div className='flex flex-col items-center justify-center py-16 px-6'>
-              <div className='w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4'>
-                <Plus size={24} className='text-gray-400' />
-              </div>
-              <h3 className='text-lg font-semibold text-gray-900 mb-2'>
-                No jobs found
-              </h3>
-              <p className='text-sm text-gray-500 text-center max-w-md mb-6'>
-                {`You haven't posted any jobs yet. Create your first job posting to
-                start attracting talented candidates.`}
-              </p>
-              <Button
-                asChild
-                className='flex items-center gap-2 px-6 py-6 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors'
-              >
-                <Link href='/admin/jobs/add'>
-                  <Plus size={20} />
-                  Add New Job
-                </Link>
-              </Button>
-            </div>
+            <NoJobs />
           ) : (
             <>
-              {/* Table */}
               <JobsFilter />
-              <div className='overflow-x-auto'>
-                <table className='w-full'>
+              <div className="overflow-x-auto">
+                <table className="w-full">
                   <TableHeader headers={tableHeaders} />
                   <JobsTableBody jobs={jobs} />
                 </table>
               </div>
 
-              {/* Pagination */}
-              <div className='px-6 py-4 border-t border-gray-200 flex items-center justify-between'>
-                <p className='text-sm text-gray-500'>
-                  Showing <span className='font-medium'>1</span> to{' '}
-                  <span className='font-medium'>{jobs.length}</span> of{' '}
-                  <span className='font-medium'>{jobs.length}</span> results
-                </p>
-                <div className='flex gap-2'>
-                  <button className='p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
-                    <ChevronLeft size={20} className='text-gray-600' />
-                  </button>
-                  <button className='px-3 py-2 bg-blue-600 text-white rounded-lg font-medium'>
-                    1
-                  </button>
-                  <button className='px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
-                    2
-                  </button>
-                  <button className='px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
-                    3
-                  </button>
-                  <span className='px-3 py-2'>...</span>
-                  <button className='px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
-                    12
-                  </button>
-                  <button className='p-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
-                    <ChevronRight size={20} className='text-gray-600' />
-                  </button>
-                </div>
+              <div className="px-6 py-4 border-t border-gray-200">
+                <Pagination pagination={pagination} basePath="/admin/jobs" itemName="jobs" />
               </div>
             </>
           )}

@@ -18,6 +18,14 @@ import { useRouter } from 'next/navigation';
 import { signIn } from 'next-auth/react';
 
 const RegisterSchema = z.object({
+  firstName: z
+    .string({ message: 'First name is required.' })
+    .min(1, { message: 'First name is required.' })
+    .max(100, { message: 'First name cannot exceed 100 characters.' })
+    .trim(),
+
+  lastName: z.string({ message: 'Last name is required.' }).min(1, { message: 'Last name is required.' }).max(100, { message: 'Last name cannot exceed 100 characters.' }).trim(),
+
   email: z
     .email({ message: 'Invalid email address.' })
     .min(5, { message: 'Email must be at least 5 characters.' })
@@ -80,9 +88,7 @@ export default function JobSeekerSignUp() {
       }
 
       setFormPass('');
-      toast.success(
-        'Registration successful! Please check your email to verify your account.'
-      );
+      toast.success('Registration successful! Please check your email to verify your account.');
     },
     onError: (error: unknown) => {
       setRegistrationSuccess(false);
@@ -90,10 +96,7 @@ export default function JobSeekerSignUp() {
         response?: { data?: { message?: string } };
         message?: string;
       };
-      const errorMessage =
-        axiosError?.response?.data?.message ||
-        axiosError?.message ||
-        'Registration failed. Please try again.';
+      const errorMessage = axiosError?.response?.data?.message || axiosError?.message || 'Registration failed. Please try again.';
       setRegistrationError(errorMessage);
       toast.error(errorMessage);
     },
@@ -126,12 +129,9 @@ export default function JobSeekerSignUp() {
   const passwordValue = watch('password');
 
   const getPasswordStrength = (pass: string) => {
-    if (pass === undefined || pass.length === 0)
-      return { strength: '', width: '0%', color: '' };
-    if (pass.length < 6)
-      return { strength: 'Weak', width: '33%', color: 'bg-red-500' };
-    if (pass.length < 10)
-      return { strength: 'Medium', width: '66%', color: 'bg-yellow-500' };
+    if (pass === undefined || pass.length === 0) return { strength: '', width: '0%', color: '' };
+    if (pass.length < 6) return { strength: 'Weak', width: '33%', color: 'bg-red-500' };
+    if (pass.length < 10) return { strength: 'Medium', width: '66%', color: 'bg-yellow-500' };
     return { strength: 'Strong', width: '100%', color: 'bg-green-500' };
   };
 
@@ -147,169 +147,156 @@ export default function JobSeekerSignUp() {
       {registrationSuccess ? (
         <EmailVerification userEmail={registrationSuccessEmail} />
       ) : (
-        <div className='min-h-screen flex'>
-          <div className='hidden lg:flex lg:w-1/2 bg-linear-to-br from-blue-100 to-blue-200 items-center justify-center p-12'>
-            <div className='max-w-md'>
-              <div className='rounded-2xl mb-8 overflow-hidden'>
+        <div className="min-h-screen flex">
+          <div className="hidden lg:flex lg:w-1/2 bg-linear-to-br from-blue-100 to-blue-200 items-center justify-center p-12">
+            <div className="max-w-md">
+              <div className="rounded-2xl mb-8 overflow-hidden">
                 <Image
-                  src='https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=600&h=400&fit=crop'
-                  alt='Career growth illustration'
+                  src="https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=600&h=400&fit=crop"
+                  alt="Career growth illustration"
                   width={500}
                   height={500}
-                  className='w-full h-auto object-cover'
+                  className="w-full h-auto object-cover"
                 />
               </div>
 
               {/* Text Content */}
-              <h1 className='text-4xl font-bold text-gray-900 mb-4'>
-                Step into Your Next Career
-              </h1>
-              <p className='text-gray-600 text-lg'>
-                Join thousands of professionals and connect with top companies
-                to find your dream job today.
-              </p>
+              <h1 className="text-4xl font-bold text-gray-900 mb-4">Step into Your Next Career</h1>
+              <p className="text-gray-600 text-lg">Join thousands of professionals and connect with top companies to find your dream job today.</p>
             </div>
           </div>
 
           {/* Right Side - Sign Up Form */}
-          <div className='w-full lg:w-1/2 bg-white flex items-center justify-center p-8'>
-            <div className='max-w-md w-full'>
+          <div className="w-full lg:w-1/2 bg-white flex items-center justify-center p-8">
+            <div className="max-w-md w-full">
               {/* Header */}
-              <div className='mb-8'>
-                <div className='flex items-center justify-between mb-8'>
-                  <div className='flex items-center gap-2'>
-                    <div className='w-8 h-8 bg-blue-500 rounded'></div>
-                    <span className='text-xl font-bold text-gray-900'>
-                      JobPortal
-                    </span>
+              <div className="mb-8">
+                <div className="flex items-center justify-between mb-8">
+                  <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 bg-blue-500 rounded"></div>
+                    <span className="text-xl font-bold text-gray-900">JobPortal</span>
                   </div>
-                  <div className='text-sm text-gray-600'>
+                  <div className="text-sm text-gray-600">
                     Already have an account?{' '}
-                    <Link
-                      href='/login'
-                      className='text-blue-500 hover:text-blue-600 font-medium'
-                    >
+                    <Link href="/login" className="text-blue-500 hover:text-blue-600 font-medium">
                       Log In
                     </Link>
                   </div>
                 </div>
 
-                <h2 className='text-3xl font-bold text-gray-900 mb-2'>
-                  Create a Job Seeker Account
-                </h2>
-                <p className='text-gray-600'>
-                  Get started by creating your account below.
-                </p>
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">Create a Job Seeker Account</h2>
+                <p className="text-gray-600">Get started by creating your account below.</p>
 
                 {registrationError && (
-                  <div className='mt-4 p-3 bg-red-50 border border-red-200 rounded-lg'>
-                    <p className='text-sm text-red-800'>{registrationError}</p>
+                  <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-800">{registrationError}</p>
                   </div>
                 )}
               </div>
 
               {/* Social Sign Up Buttons */}
-              <div className='space-y-3 mb-6'>
+              <div className="space-y-3 mb-6">
                 <button
                   onClick={handleGoogleSignUp}
-                  className='w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'
+                  className="w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
                 >
-                  <BsGoogle size='20' />
-                  <span className='font-medium text-gray-900'>
-                    Sign up with Google
-                  </span>
+                  <BsGoogle size="20" />
+                  <span className="font-medium text-gray-900">Sign up with Google</span>
                 </button>
 
-                <button className='w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors'>
-                  <BsLinkedin size='20' />
-                  <span className='font-medium text-gray-900'>
-                    Sign up with LinkedIn
-                  </span>
+                <button className="w-full flex items-center justify-center gap-3 px-4 py-3 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                  <BsLinkedin size="20" />
+                  <span className="font-medium text-gray-900">Sign up with LinkedIn</span>
                 </button>
               </div>
 
               {/* Divider */}
-              <div className='relative my-6'>
-                <div className='absolute inset-0 flex items-center'>
-                  <div className='w-full border-t border-gray-300'></div>
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300"></div>
                 </div>
-                <div className='relative flex justify-center'>
-                  <span className='px-4 bg-white text-sm text-gray-500'>
-                    or
-                  </span>
+                <div className="relative flex justify-center">
+                  <span className="px-4 bg-white text-sm text-gray-500">or</span>
                 </div>
               </div>
 
               {/* Email and Password Fields */}
-              <form action='' onSubmit={handleSubmit(onSubmit)}>
-                <div className='space-y-5'>
+              <form action="" onSubmit={handleSubmit(onSubmit)}>
+                <div className="space-y-5">
+                  {/* First Name Field */}
+                  <div>
+                    <label htmlFor="firstName" className="block text-sm font-medium text-gray-900 mb-2">
+                      First Name
+                    </label>
+                    <input
+                      type="text"
+                      id="firstName"
+                      placeholder="John"
+                      {...register('firstName')}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    />
+                    {errors.firstName && <FormError message={errors.firstName.message} />}
+                  </div>
+
+                  {/* Last Name Field */}
+                  <div>
+                    <label htmlFor="lastName" className="block text-sm font-medium text-gray-900 mb-2">
+                      Last Name
+                    </label>
+                    <input
+                      type="text"
+                      id="lastName"
+                      placeholder="Doe"
+                      {...register('lastName')}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+                    />
+                    {errors.lastName && <FormError message={errors.lastName.message} />}
+                  </div>
+
                   {/* Email Field */}
                   <div>
-                    <label
-                      htmlFor='email'
-                      className='block text-sm font-medium text-gray-900 mb-2'
-                    >
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-900 mb-2">
                       Email
                     </label>
                     <input
-                      type='email'
-                      id='email'
-                      placeholder='you@example.com'
+                      type="email"
+                      id="email"
+                      placeholder="you@example.com"
                       {...register('email')}
-                      className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none'
+                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                     />
 
-                    {/* Password form error */}
-                    {errors.email && (
-                      <FormError message={errors.email.message} />
-                    )}
+                    {/* Email form error */}
+                    {errors.email && <FormError message={errors.email.message} />}
                   </div>
 
                   {/* Password Field */}
                   <div>
-                    <label
-                      htmlFor='password'
-                      className='block text-sm font-medium text-gray-900 mb-2'
-                    >
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-900 mb-2">
                       Password
                     </label>
-                    <div className='relative'>
+                    <div className="relative">
                       <input
                         type={showPassword ? 'text' : 'password'}
-                        id='password'
-                        placeholder='Create a strong password'
+                        id="password"
+                        placeholder="Create a strong password"
                         {...register('password')}
-                        className='w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none pr-12'
+                        className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none pr-12"
                       />
-                      <button
-                        type='button'
-                        onClick={() => setShowPassword(!showPassword)}
-                        className='absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700'
-                      >
-                        {showPassword ? (
-                          <FiEyeOff size={20} />
-                        ) : (
-                          <FiEye size={20} />
-                        )}
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700">
+                        {showPassword ? <FiEyeOff size={20} /> : <FiEye size={20} />}
                       </button>
                     </div>
 
                     {/* Password Strength Indicator */}
                     {passwordValue && (
-                      <div className='mt-2'>
-                        <div className='h-1 bg-gray-200 rounded-full overflow-hidden'>
-                          <div
-                            className={`h-full ${passwordStrength.color} transition-all duration-300`}
-                            style={{ width: passwordStrength.width }}
-                          ></div>
+                      <div className="mt-2">
+                        <div className="h-1 bg-gray-200 rounded-full overflow-hidden">
+                          <div className={`h-full ${passwordStrength.color} transition-all duration-300`} style={{ width: passwordStrength.width }}></div>
                         </div>
                         <p
                           className={`text-xs mt-1 ${
-                            passwordStrength.strength === 'Weak'
-                              ? 'text-red-500'
-                              : passwordStrength.strength === 'Medium'
-                              ? 'text-yellow-600'
-                              : 'text-green-600'
+                            passwordStrength.strength === 'Weak' ? 'text-red-500' : passwordStrength.strength === 'Medium' ? 'text-yellow-600' : 'text-green-600'
                           }`}
                         >
                           {passwordStrength.strength}
@@ -318,19 +305,17 @@ export default function JobSeekerSignUp() {
                     )}
 
                     {/* Password form error */}
-                    {errors.password && (
-                      <FormError message={errors.password.message} />
-                    )}
+                    {errors.password && <FormError message={errors.password.message} />}
                   </div>
 
                   {/* Terms and Conditions */}
-                  <p className='text-sm text-gray-600'>
+                  <p className="text-sm text-gray-600">
                     By creating an account, you agree to our{' '}
-                    <a href='#' className='text-blue-500 hover:text-blue-600'>
+                    <a href="#" className="text-blue-500 hover:text-blue-600">
                       Terms of Service
                     </a>{' '}
                     and{' '}
-                    <a href='#' className='text-blue-500 hover:text-blue-600'>
+                    <a href="#" className="text-blue-500 hover:text-blue-600">
                       Privacy Policy
                     </a>
                     .
@@ -339,7 +324,7 @@ export default function JobSeekerSignUp() {
                   {/* Submit Button */}
                   <button
                     disabled={mutation.isPending}
-                    type='submit'
+                    type="submit"
                     className={`w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition-colors ${
                       mutation.isPending && 'cursor-not-allowed bg-blue-300/50'
                     }`}

@@ -39,7 +39,11 @@ export default function ApplicationAction({ applicationId, pipelineStages, curre
       const result = await moveApplicationStageAction(applicationId, stageId);
 
       if (result.success) {
-        toast.success(`Application moved to ${direction === 'next' ? 'next' : 'previous'} stage successfully`);
+        if (result.statusUpdated) {
+          toast.success('Application moved to final stage. Status automatically updated to OFFER!');
+        } else {
+          toast.success(`Application moved to ${direction === 'next' ? 'next' : 'previous'} stage successfully`);
+        }
       } else {
         toast.error(result.error || 'Failed to move application stage');
       }
@@ -74,6 +78,11 @@ export default function ApplicationAction({ applicationId, pipelineStages, curre
 
   const nextStage = getNextStage();
   const previousStage = getPreviousStage();
+
+  // Check if current stage is the final stage
+  const maxOrder = pipelineStages.length > 0 ? Math.max(...pipelineStages.map((s) => s.order)) : 0;
+  const isFinalStage = currentStage?.order === maxOrder && maxOrder > 0;
+  const isAtOfferStage = status === 'OFFER' || status === 'HIRED';
 
   // Show actions if: no assigned user OR current user is the assigned user
   const shouldShowActions = !currentAssignedUser?.id || currentAssignedUser?.email === userEmail;
@@ -118,7 +127,7 @@ export default function ApplicationAction({ applicationId, pipelineStages, curre
               {currentAssignedUser ? 'Reassign' : 'Assign to Team Member'}
               <UserPlus className="w-4 h-4" />
             </button>
-            {stagesOrderCount > 1 && previousStage && (
+            {stagesOrderCount > 1 && previousStage && !isAtOfferStage && (
               <button
                 onClick={() => handleMoveStage(previousStage.id, 'previous')}
                 disabled={isPending}
@@ -137,7 +146,7 @@ export default function ApplicationAction({ applicationId, pipelineStages, curre
                 )}
               </button>
             )}
-            {stagesOrderCount > 1 && nextStage && (
+            {stagesOrderCount > 1 && nextStage && !isFinalStage && (
               <button
                 onClick={() => handleMoveStage(nextStage.id, 'next')}
                 disabled={isPending}
@@ -155,6 +164,12 @@ export default function ApplicationAction({ applicationId, pipelineStages, curre
                   </>
                 )}
               </button>
+            )}
+            {isFinalStage && !isAtOfferStage && (
+              <div className="px-4 py-2 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm font-medium">✓ Ready for Offer</div>
+            )}
+            {isAtOfferStage && (
+              <div className="px-4 py-2 bg-blue-50 border border-blue-200 text-blue-700 rounded-lg text-sm font-medium">{status === 'OFFER' ? '📧 Offer Stage' : '✅ Hired'}</div>
             )}
           </div>
         </>

@@ -7,6 +7,7 @@ import { Bell, MessageSquare, User, Settings, LogOut, Building2, FileText } from
 import { signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
 import React from 'react';
+import { getInitials } from '@/lib/utils';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { data: session, status } = useSession();
@@ -43,12 +44,6 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                   <Link href="/profile" className="text-gray-600 hover:text-gray-900">
                     Profile
                   </Link>
-
-                  {session?.user.companyId && (
-                    <Link href="/admin" className="text-gray-600 hover:text-gray-900">
-                      Manage Company
-                    </Link>
-                  )}
                 </>
               )}
             </nav>
@@ -68,7 +63,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                       <button className="cursor-pointer hover:opacity-80 transition-opacity">
                         <Avatar className="w-8 h-8">
                           <AvatarImage src={session?.user.image || 'https://github.com/shadcn.png'} />
-                          <AvatarFallback>{session?.user.name?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                          <AvatarFallback>
+                            {getInitials({
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                              firstName: (session?.user as any)?.firstName,
+                              // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                              lastName: (session?.user as any)?.lastName,
+                              email: session?.user?.email || undefined,
+                              name: session?.user?.name || undefined,
+                              default: 'U',
+                            })}
+                          </AvatarFallback>
                         </Avatar>
                       </button>
                     </DropdownMenuTrigger>
@@ -96,7 +101,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                         <>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem asChild>
-                            <Link href={`/company/dashboard/${session.user.companyId}`} className="cursor-pointer">
+                            <Link href={`/admin`} className="cursor-pointer">
                               <Building2 className="mr-2 h-4 w-4" />
                               <span>Switch to Company</span>
                             </Link>

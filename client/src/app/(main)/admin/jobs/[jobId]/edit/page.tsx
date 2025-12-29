@@ -1,6 +1,6 @@
 import React from 'react';
-import { ChevronRight } from 'lucide-react';
 import { fetchWithRetry } from '@/lib/fetchWithRetry';
+import AppBreadCrumb from '@/components/AppBreadCrumb';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
 import Link from 'next/link';
@@ -50,10 +50,8 @@ export default async function EditJobPage({ params }: EditJobPageProps) {
 
   if (!session?.user?.companyId) {
     return (
-      <div className='p-8'>
-        <p className='text-red-600'>
-          Company ID not found. Please ensure you are associated with a company.
-        </p>
+      <div className="p-8">
+        <p className="text-red-600">Company ID not found. Please ensure you are associated with a company.</p>
       </div>
     );
   }
@@ -89,31 +87,19 @@ export default async function EditJobPage({ params }: EditJobPageProps) {
   return (
     <>
       {/* Breadcrumb */}
-      <div className='bg-white border-b border-gray-200 px-8 py-4'>
-        <div className='flex items-center gap-2 text-sm text-gray-500 mb-4'>
-          <Link
-            href='/admin/jobs'
-            className='hover:text-gray-700 cursor-pointer'
-          >
-            Jobs Management
-          </Link>
-          <ChevronRight size={16} />
-          <Link
-            href={`/admin/jobs/${job.slug}`}
-            className='hover:text-gray-700 cursor-pointer'
-          >
-            {job.title}
-          </Link>
-          <ChevronRight size={16} />
-          <span className='text-gray-900 font-medium'>Edit</span>
-        </div>
-        <h1 className='text-3xl font-bold text-gray-900'>Edit Job</h1>
+      <div className="bg-white border-b border-gray-200 px-8 py-4">
+        <AppBreadCrumb
+          items={[{ label: 'Jobs Management', href: '/admin/jobs' }, { label: job.title, href: `/admin/jobs/${job.slug}` }, { label: 'Edit Job' }]}
+          homeHref="/admin"
+          className="mb-4"
+        />
+        <h1 className="text-3xl font-bold text-gray-900">Edit Job</h1>
       </div>
 
       {/* Main Content */}
-      <main className='flex-1 overflow-y-auto p-8'>
-        <div className='max-w-4xl mx-auto'>
-          <div className='bg-white rounded-xl border border-gray-200 p-8'>
+      <main className="flex-1 overflow-y-auto p-8">
+        <div className="max-w-4xl mx-auto">
+          <div className="bg-white rounded-xl border border-gray-200 p-8">
             <EditJobForm job={job} companyId={session.user.companyId} />
           </div>
         </div>

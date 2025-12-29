@@ -3,6 +3,7 @@ import React, { useOptimistic, useState, useTransition } from 'react';
 import { formatDistanceToNowStrict } from 'date-fns';
 import { createNoteAction } from '@/app/actions/notes.actions';
 import { toast } from 'sonner';
+import { getInitials } from '@/lib/utils';
 
 interface Note {
   id: string;
@@ -27,14 +28,6 @@ const TeamNotes = ({ initialNotes, applicationId, userEmail }: TeamNotesProps) =
   const [showInput, setShowInput] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [isPending, startTransition] = useTransition();
-
-  const getInitials = (email: string) => {
-    const parts = email.split('@')[0].split('.');
-    if (parts.length >= 2) {
-      return (parts[0][0] + parts[1][0]).toUpperCase();
-    }
-    return email.substring(0, 2).toUpperCase();
-  };
 
   const getColor = (email: string) => {
     const colors = ['bg-blue-500', 'bg-green-500', 'bg-purple-500', 'bg-pink-500', 'bg-yellow-500', 'bg-indigo-500'];
@@ -110,7 +103,7 @@ const TeamNotes = ({ initialNotes, applicationId, userEmail }: TeamNotesProps) =
           {optimisticsNote.map((note) => (
             <div key={note.id} className="flex gap-3">
               <div className={`w-9 h-9 ${getColor(note.author.email)} rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0`}>
-                {getInitials(note.author.email)}
+                {getInitials({ email: note.author.email, default: 'U' })}
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">

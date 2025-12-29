@@ -11,20 +11,15 @@ async function refreshAccessToken(token: any) {
       throw new Error('No refresh token available');
     }
 
-    const response = await fetch(
-      `http://localhost:3000/api/v1/auth/refresh/${token.refreshTokenHash}`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      }
-    );
+    const response = await fetch(`http://localhost:3000/api/v1/auth/refresh/${token.refreshTokenHash}`, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
 
     if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ message: 'Token refresh failed' }));
+      const errorData = await response.json().catch(() => ({ message: 'Token refresh failed' }));
       throw new Error(errorData.message || 'Token refresh failed');
     }
 
@@ -73,9 +68,7 @@ export const authOptions: NextAuthOptions = {
           });
 
           if (!res.ok) {
-            const errorData = await res
-              .json()
-              .catch(() => ({ message: 'Login failed' }));
+            const errorData = await res.json().catch(() => ({ message: 'Login failed' }));
             throw new Error(errorData.message || 'Invalid email or password');
           }
 
@@ -117,7 +110,11 @@ export const authOptions: NextAuthOptions = {
             const { data } = await res.json();
             user.id = data.id || user.id;
             (user as any).role = data.role || 'USER';
+            (user as any).firstName = data.firstName || null;
+            (user as any).lastName = data.lastName || null;
             (user as any).isVerified = data.isVerified || false;
+            (user as any).companyId = data.companyId || null;
+            (user as any).companyRole = data.companyRole || null;
             return true;
           }
         } catch (error) {
@@ -132,8 +129,11 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.role = (user as any).role;
         token.id = (user as any).id;
+        token.firstName = (user as any).firstName;
+        token.lastName = (user as any).lastName;
         token.isVerified = (user as any).isVerified;
         token.companyId = (user as any).companyId;
+        token.companyRole = (user as any).companyRole;
         token.accessToken = (user as any).accessToken;
         token.refreshTokenHash = (user as any).refreshTokenHash;
         token.accessTokenExpiresAt = Date.now() + 15 * 60 * 1000;
@@ -142,10 +142,7 @@ export const authOptions: NextAuthOptions = {
       }
 
       // Return previous token if the access token has not expired yet
-      if (
-        token.accessTokenExpiresAt &&
-        Date.now() < token.accessTokenExpiresAt
-      ) {
+      if (token.accessTokenExpiresAt && Date.now() < token.accessTokenExpiresAt) {
         return token;
       }
 
@@ -156,8 +153,11 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         (session.user as any).role = token.role;
         (session.user as any).id = token.id;
+        (session.user as any).firstName = token.firstName;
+        (session.user as any).lastName = token.lastName;
         (session.user as any).isVerified = token.isVerified;
         (session.user as any).companyId = token.companyId;
+        (session.user as any).companyRole = token.companyRole;
         (session.user as any).accessToken = token.accessToken;
         (session.user as any).refreshTokenHash = token.refreshTokenHash;
         (session.user as any).accessTokenExpiresAt = token.accessTokenExpiresAt;

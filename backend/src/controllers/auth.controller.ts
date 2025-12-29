@@ -49,6 +49,8 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
     data: {
       id: newUser.id,
       email: newUser.email,
+      firstName: newUser.firstName,
+      lastName: newUser.lastName,
       role: newUser.role,
       isVerified: newUser.isVerified,
       accessToken,
@@ -63,14 +65,16 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
 // NOTE: User login
 export const login = async (req: Request, res: Response, next: NextFunction) => {
   let companyId: string | null = null;
+  let companyRole: string | null = null;
 
   const user = await LoginUser(req.body);
 
-  // check if user is an company and get user companyId
+  // check if user is an company and get user companyId and role
   const userCompany = await FindCompanyByUserID(user.id);
 
   if (userCompany) {
     companyId = userCompany.companyId;
+    companyRole = userCompany.role;
   }
 
   const { accessToken, refreshToken } = generateTokens(user);
@@ -87,9 +91,12 @@ export const login = async (req: Request, res: Response, next: NextFunction) => 
     data: {
       id: user.id,
       email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
       role: user.role,
       isVerified: user.isVerified,
       companyId,
+      companyRole,
       accessToken,
       refreshTokenHash,
     },
@@ -130,6 +137,8 @@ export const registerUserCompany = async (req: Request, res: Response, next: Nex
     data: {
       id: user.id,
       email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
       role: user.role,
       companyId: company.id,
       isVerified: user.isVerified,
@@ -145,6 +154,17 @@ export const oAuth = async (req: Request, res: Response, next: NextFunction) => 
   console.log('oauth entered');
   const user = await RegisterOauthUser(req.body);
 
+  let companyId: string | null = null;
+  let companyRole: string | null = null;
+
+  // check if user is an company and get user companyId and role
+  const userCompany = await FindCompanyByUserID(user.id);
+
+  if (userCompany) {
+    companyId = userCompany.companyId;
+    companyRole = userCompany.role;
+  }
+
   const { accessToken, refreshToken } = generateTokens(user);
 
   const refreshTokenHash = await saveRefreshTokenToDB({
@@ -158,8 +178,12 @@ export const oAuth = async (req: Request, res: Response, next: NextFunction) => 
     data: {
       id: user.id,
       email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
       role: user.role,
       isVerified: user.isVerified,
+      companyId,
+      companyRole,
       accessToken,
       refreshTokenHash,
     },

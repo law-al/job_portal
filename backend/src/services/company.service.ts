@@ -196,6 +196,8 @@ export const FindCompanyMembersV2 = async (id: string) => {
           select: {
             id: true,
             email: true,
+            firstName: true,
+            lastName: true,
           },
         },
       },
@@ -301,6 +303,15 @@ export const FindCompanyMember = async (companyId: string, memberId: string) => 
           userId: memberId,
         },
       },
+      include: {
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            email: true,
+          },
+        },
+      },
     });
   } catch (error) {
     throw error;
@@ -326,6 +337,8 @@ export const FindCompanyMemberWithUser = async (companyId: string, memberId: str
           select: {
             id: true,
             email: true,
+            firstName: true,
+            lastName: true,
             isActive: true,
           },
         },

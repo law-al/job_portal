@@ -1,9 +1,12 @@
-import { Building2, Search, Calendar, Download, ChevronDown, Bell, ChevronRight } from 'lucide-react';
-import Card from './components/Card';
+import { Building2, Search, Calendar, Download, ChevronDown, Bell } from 'lucide-react';
+import Card from '../../../../components/Card';
 import ApplicationTable from './components/ApplicationTable';
 import { fetchWithRetry } from '@/lib/fetchWithRetry';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
+import { getInitials } from '@/lib/utils';
+import Pagination from '@/components/Pagination';
+import AppBreadCrumb from '@/components/AppBreadCrumb';
 
 interface ApplicationResponse {
   success: boolean;
@@ -111,7 +114,12 @@ export default async function AdminApplicationsManagement() {
         const firstName = app.firstName || '';
         const lastName = app.lastName || '';
         const fullName = `${firstName} ${lastName}`.trim() || 'Unknown';
-        const initials = firstName.charAt(0) + lastName.charAt(0) || '??';
+        const initials = getInitials({
+          firstName: app.firstName,
+          lastName: app.lastName,
+          email: app.email,
+          default: '??',
+        });
 
         // Get stage name or default
         const stageName = app.pipelineStage?.name || 'Applied';
@@ -181,11 +189,7 @@ export default async function AdminApplicationsManagement() {
         {/* Header */}
         <header className="bg-white border-b border-gray-200 px-8 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2 text-sm text-gray-600">
-              <span>Dashboard</span>
-              <ChevronRight className="w-4 h-4" />
-              <span className="text-gray-900 font-medium">Applications Management</span>
-            </div>
+            <AppBreadCrumb items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Applications Management' }]} homeHref="/admin" />
             <div className="flex items-center gap-4">
               <button className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors">
                 <Bell className="w-5 h-5 text-gray-600" />
@@ -265,36 +269,8 @@ export default async function AdminApplicationsManagement() {
             <>
               <ApplicationTable applications={applications} />
               {/* Pagination */}
-              <div className="px-6 py-4 border-t border-gray-200 flex items-center justify-between mt-4">
-                <p className="text-sm text-gray-600">
-                  Showing <span className="font-semibold">{applications.length}</span> of <span className="font-semibold">{pagination.total}</span> entries
-                </p>
-                <div className="flex items-center gap-2">
-                  <button
-                    disabled={pagination.page === 1}
-                    className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Previous
-                  </button>
-                  <button className="w-10 h-10 bg-blue-600 text-white rounded-lg font-medium">{pagination.page}</button>
-                  {pagination.totalPages > 1 && (
-                    <>
-                      <button className="w-10 h-10 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">{pagination.page + 1}</button>
-                      {pagination.totalPages > 2 && (
-                        <>
-                          <span className="px-2 text-gray-500">...</span>
-                          <button className="w-10 h-10 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">{pagination.totalPages}</button>
-                        </>
-                      )}
-                    </>
-                  )}
-                  <button
-                    disabled={pagination.page >= pagination.totalPages}
-                    className="px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    Next
-                  </button>
-                </div>
+              <div className="px-6 py-4 border-t border-gray-200 mt-4">
+                <Pagination pagination={pagination} basePath="/admin/applications" itemName="applications" />
               </div>
             </>
           )}

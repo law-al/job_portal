@@ -1,6 +1,6 @@
 import React from 'react';
-import { ChevronRight, Mail, Calendar, MoreHorizontal, ChevronDown } from 'lucide-react';
-import Link from 'next/link';
+import { Mail, Calendar, MoreHorizontal, ChevronDown } from 'lucide-react';
+import AppBreadCrumb from '@/components/AppBreadCrumb';
 import ContactsInfo from './components/ContactsInfo';
 import { fetchWithRetry } from '@/lib/fetchWithRetry';
 import { getServerSession } from 'next-auth';
@@ -12,6 +12,7 @@ import AIApplicationReview from './components/AIApplicationReview';
 import { formatDistanceToNowStrict } from 'date-fns';
 import TeamNotesWrapper from './components/notes/TeamNotesWrapper';
 import ActivityTimeLineWrapper from './components/ActivityTimeLineWrapper';
+import { getInitials } from '@/lib/utils';
 
 interface ApplicationDetailPageProps {
   params: Promise<{ applicationId: string }>;
@@ -119,18 +120,19 @@ export default async function CandidateApplicationPage({ params }: ApplicationDe
 
   // Format data for display
   const fullName = `${application.firstName} ${application.lastName}`.trim();
-  const initials = `${application.firstName.charAt(0)}${application.lastName.charAt(0)}`.toUpperCase();
+  const initials = getInitials({
+    firstName: application.firstName,
+    lastName: application.lastName,
+    email: application.email,
+    default: '??',
+  });
   const appliedDate = formatDistanceToNowStrict(new Date(application.createdAt), { addSuffix: true });
 
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Breadcrumb */}
       <div className="px-6 py-4 bg-white border-b border-gray-200">
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <Link href="/admin/applications">Application Management</Link>
-          <ChevronRight className="w-4 h-4" />
-          <span className="text-gray-900">Application Details</span>
-        </div>
+        <AppBreadCrumb items={[{ label: 'Application Management', href: '/admin/applications' }, { label: 'Application Details' }]} homeHref="/admin" />
       </div>
 
       {/* Main Content */}

@@ -49,6 +49,8 @@ export const RegisterUser = async (body: any) => {
     const user = await prisma.user.create({
       data: {
         email: validatedBody.email,
+        firstName: validatedBody.firstName,
+        lastName: validatedBody.lastName,
         role: userRole,
         password: hashSync(validatedBody.password, 12),
       },

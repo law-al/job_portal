@@ -247,24 +247,89 @@ export const DeleteJob = async (id: string) => {
   }
 };
 
-export const FindCompanyJobs = async (companyId: string) => {
+export const FindCompanyJobs = async (
+  companyId: string,
+  options?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    search?: string;
+  },
+) => {
   try {
-    const jobs = await prisma.job.findMany({
-      where: {
-        companyId,
-      },
-      include: {
-        applications: true,
-        pipelineStages: {
-          select: {
-            name: true,
-            order: true,
+    const page = options?.page || 1;
+    const limit = options?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      companyId,
+    };
+
+    // Add filters
+    if (options?.status) {
+      where.status = options.status;
+    }
+
+    if (options?.search) {
+      where.OR = [
+        {
+          title: {
+            contains: options.search,
+            mode: 'insensitive',
           },
         },
-      },
-    });
+        {
+          description: {
+            contains: options.search,
+            mode: 'insensitive',
+          },
+        },
+        {
+          location: {
+            contains: options.search,
+            mode: 'insensitive',
+          },
+        },
+      ];
+    }
 
-    return jobs;
+    const [jobs, total] = await Promise.all([
+      prisma.job.findMany({
+        where,
+        include: {
+          applications: {
+            select: {
+              id: true,
+            },
+          },
+          pipelineStages: {
+            select: {
+              name: true,
+              order: true,
+            },
+            orderBy: {
+              order: 'asc',
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+      prisma.job.count({ where }),
+    ]);
+
+    return {
+      jobs,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   } catch (error) {
     throw error;
   }

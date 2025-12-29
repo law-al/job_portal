@@ -1,6 +1,8 @@
-import { ChevronLeft, ChevronRight } from 'lucide-react';
-import JobCard from '@/components/JobCard';
 import Filters from './components/Filters';
+import Pagination from '@/components/Pagination';
+import SearchHeader from './components/SearchHeader';
+import JobListingsWrapper from './components/JobListingsWrapper';
+import Jobs from './components/Jobs';
 
 interface SearchParams {
   search?: string;
@@ -78,11 +80,7 @@ const buildQueryString = (params: SearchParams) => {
   return qs.toString();
 };
 
-export default async function JobListings({
-  searchParams,
-}: {
-  searchParams: Promise<SearchParams>;
-}) {
+export default async function JobListings({ searchParams }: { searchParams: Promise<SearchParams> }) {
   const params = (await searchParams) as SearchParams;
   const query = buildQueryString(params);
 
@@ -95,12 +93,9 @@ export default async function JobListings({
   };
 
   try {
-    const res = await fetch(
-      `http://localhost:3000/api/v1/jobs/all${query ? `?${query}` : ''}`,
-      {
-        cache: 'no-store',
-      }
-    );
+    const res = await fetch(`http://localhost:3000/api/v1/jobs/all${query ? `?${query}` : ''}`, {
+      cache: 'no-store',
+    });
 
     if (res.ok) {
       const data = (await res.json()) as GetAllJobsResponse;
@@ -113,100 +108,17 @@ export default async function JobListings({
 
   const hasJobs = jobs && jobs.length > 0;
 
-  const renderJobs = () => {
-    if (!hasJobs) {
-      return (
-        <div className='text-center text-gray-600 py-10 border border-dashed border-gray-200 rounded-lg bg-white'>
-          No jobs found. Try adjusting your filters.
-        </div>
-      );
-    }
-
-    return (
-      <div className='grid grid-cols-1 lg:grid-cols-2 gap-6'>
-        {jobs.map((job) => (
-          <JobCard
-            key={job.id}
-            id={job.id}
-            slug={job.slug}
-            title={job.title}
-            company={job.company?.name}
-            location={job.location}
-            salary_range={job.salary_range || undefined}
-            jobType={job.jobType || undefined}
-            experienceLevel={job.experienceLevel || undefined}
-            isRemote={Boolean(job.isRemote)}
-            status={job.status || undefined}
-            isClosed={job.isClosed || false}
-            deadline={job.deadline || undefined}
-            createdAt={job.createdAt}
-            buttonText='Apply Now'
-          />
-        ))}
-      </div>
-    );
-  };
-
-  const buildPageLink = (page: number) => {
-    const qs = new URLSearchParams(query);
-    qs.set('page', page.toString());
-    return `/jobs?${qs.toString()}`;
-  };
-
-  const currentPage = pagination.page || 1;
-  const totalPages = pagination.totalPages || 1;
-
   return (
-    <div className='min-h-screen bg-gray-50 py-8'>
-      <div className='max-w-7xl mx-auto px-6'>
-        <div className='flex gap-8'>
-          {/* Filters Sidebar */}
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-6">
+        <JobListingsWrapper>
           <Filters />
-
-          {/* Job Listings */}
-          <main className='flex-1'>
-            <div className='mb-6'>
-              <h1 className='text-2xl font-bold text-gray-900'>
-                Showing{' '}
-                <span className='text-blue-600'>
-                  {pagination.total || jobs.length} results
-                </span>
-              </h1>
-              {params.search && (
-                <p className='text-sm text-gray-500 mt-1'>
-                  Search: <span className='font-medium'>{params.search}</span>
-                </p>
-              )}
-            </div>
-
-            {renderJobs()}
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-              <div className='flex justify-center items-center gap-2 mt-8'>
-                <a
-                  href={buildPageLink(Math.max(1, currentPage - 1))}
-                  className='p-2 hover:bg-white rounded-lg transition-colors disabled:opacity-50'
-                  aria-disabled={currentPage === 1}
-                >
-                  <ChevronLeft className='w-5 h-5 text-gray-600' />
-                </a>
-
-                <span className='px-3 py-2 rounded-lg bg-white border text-sm text-gray-700'>
-                  Page {currentPage} of {totalPages}
-                </span>
-
-                <a
-                  href={buildPageLink(Math.min(totalPages, currentPage + 1))}
-                  className='p-2 hover:bg-white rounded-lg transition-colors disabled:opacity-50'
-                  aria-disabled={currentPage === totalPages}
-                >
-                  <ChevronRight className='w-5 h-5 text-gray-600' />
-                </a>
-              </div>
-            )}
+          <main className="flex-1">
+            <SearchHeader total={pagination.total || jobs.length} search={params.search || ''} />
+            <Jobs jobs={jobs} hasJobs={hasJobs} />
+            <Pagination pagination={pagination} basePath="/jobs" itemName="jobs" />
           </main>
-        </div>
+        </JobListingsWrapper>
       </div>
     </div>
   );

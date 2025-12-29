@@ -6,7 +6,7 @@ export async function proxy(request: Request) {
   const url = new URL(request.url);
   const pathname = url.pathname;
   const session = await getServerSession(authOptions);
-  console.log(session?.user.companyId);
+  console.log(session?.user);
 
   // 1. Logged-in users shouldn't see login/register
   if (session && (pathname === '/login' || pathname === '/register')) {

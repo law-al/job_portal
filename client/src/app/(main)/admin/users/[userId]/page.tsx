@@ -1,6 +1,7 @@
 import { authOptions } from '@/auth';
 import { fetchWithRetry } from '@/lib/fetchWithRetry';
-import { ChevronRight, User } from 'lucide-react';
+import { User } from 'lucide-react';
+import AppBreadCrumb from '@/components/AppBreadCrumb';
 import { getServerSession } from 'next-auth';
 import { UserActions } from '../components/UserActions';
 
@@ -16,15 +17,13 @@ interface UserResponse {
       id: string;
       email: string;
       isActive: boolean;
+      firstName: string;
+      lastName: string;
     };
   };
 }
 
-export default async function UserProfileDetail({
-  params,
-}: {
-  params: Promise<{ userId: string }>;
-}) {
+export default async function UserProfileDetail({ params }: { params: Promise<{ userId: string }> }) {
   const { userId } = await params;
 
   const session = await getServerSession(authOptions);
@@ -52,9 +51,7 @@ export default async function UserProfileDetail({
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(
-      errorData.message || response.statusText || 'Failed to fetch user'
-    );
+    throw new Error(errorData.message || response.statusText || 'Failed to fetch user');
   }
 
   const { data: member } = (await response.json()) as UserResponse;
@@ -98,46 +95,30 @@ export default async function UserProfileDetail({
   return (
     <>
       {/* Breadcrumb */}
-      <div className='bg-white border-b border-gray-200 px-8 py-4'>
-        <div className='flex items-center gap-2 text-sm text-gray-500'>
-          <span className='hover:text-gray-700 cursor-pointer'>Dashboard</span>
-          <ChevronRight size={16} />
-          <span className='hover:text-gray-700 cursor-pointer'>
-            Users Management
-          </span>
-          <ChevronRight size={16} />
-          <span className='text-gray-900 font-medium'>{member.user.email}</span>
-        </div>
+      <div className="bg-white border-b border-gray-200 px-8 py-4">
+        <AppBreadCrumb items={[{ label: 'Dashboard', href: '/admin' }, { label: 'Users Management', href: '/admin/users' }, { label: member.user.email }]} homeHref="/admin" />
       </div>
 
       {/* Main Content Area */}
-      <main className='flex-1 overflow-y-auto p-8'>
+      <main className="flex-1 overflow-y-auto p-8">
         {/* Profile Header */}
-        <div className='bg-white rounded-xl border border-gray-200 p-8 mb-6'>
-          <div className='flex items-center justify-between'>
-            <div className='flex items-center gap-6'>
+        <div className="bg-white rounded-xl border border-gray-200 p-8 mb-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-6">
               {/* Avatar Placeholder */}
-              <div className='w-24 h-24 bg-linear-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center'>
-                <User className='w-12 h-12 text-white' />
+              <div className="w-24 h-24 bg-linear-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center">
+                <User className="w-12 h-12 text-white" />
               </div>
 
               {/* User Info */}
               <div>
-                <h1 className='text-3xl font-bold text-gray-900 mb-1'>
-                  {member.user.email.split('@')[0] || '__'}
+                <h1 className="text-3xl font-bold text-gray-900 mb-1">
+                  {member.user.firstName} {member.user.lastName || '__'}
                 </h1>
-                <p className='text-gray-600 mb-2 capitalize'>
-                  {member.role.toLowerCase()}
-                </p>
-                <div className='flex items-center gap-2'>
-                  <div
-                    className={`w-2 h-2 ${getStatusColor(
-                      member.status
-                    )} rounded-full`}
-                  ></div>
-                  <span className='text-sm text-gray-700'>
-                    Status: {getStatusText(member.status)}
-                  </span>
+                <p className="text-gray-600 mb-2 capitalize">{member.role.toLowerCase()}</p>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 ${getStatusColor(member.status)} rounded-full`}></div>
+                  <span className="text-sm text-gray-700">Status: {getStatusText(member.status)}</span>
                 </div>
               </div>
             </div>
@@ -148,78 +129,63 @@ export default async function UserProfileDetail({
         </div>
 
         {/* Tabs */}
-        <div className='bg-white rounded-xl border border-gray-200 mb-6'>
-          <div className='border-b border-gray-200'>
-            <div className='flex gap-8 px-8'>
+        <div className="bg-white rounded-xl border border-gray-200 mb-6">
+          <div className="border-b border-gray-200">
+            <div className="flex gap-8 px-8">
               {tabs.map((tab) => (
-                <button
-                  key={tab.label}
-                  className={`py-4 text-sm font-medium transition-colors relative ${
-                    tab.active
-                      ? 'text-blue-600'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
+                <button key={tab.label} className={`py-4 text-sm font-medium transition-colors relative ${tab.active ? 'text-blue-600' : 'text-gray-600 hover:text-gray-900'}`}>
                   {tab.label}
-                  {tab.active && (
-                    <div className='absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600'></div>
-                  )}
+                  {tab.active && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600"></div>}
                 </button>
               ))}
             </div>
           </div>
 
           {/* Profile Content */}
-          <div className='p-8'>
-            <div className='grid grid-cols-3 gap-8'>
+          <div className="p-8">
+            <div className="grid grid-cols-3 gap-8">
               {/* Row 1 */}
               <div>
-                <p className='text-sm text-gray-500 mb-1'>Full Name</p>
-                <p className='text-gray-900 font-medium'>__</p>
+                <p className="text-sm text-gray-500 mb-1">Full Name</p>
+                <p className="text-gray-900 font-medium">
+                  {member.user.firstName} {member.user.lastName || '__'}
+                </p>
               </div>
               <div>
-                <p className='text-sm text-gray-500 mb-1'>Email</p>
-                <p className='text-gray-900 font-medium'>{member.user.email}</p>
+                <p className="text-sm text-gray-500 mb-1">Email</p>
+                <p className="text-gray-900 font-medium">{member.user.email}</p>
               </div>
               <div>
-                <p className='text-sm text-gray-500 mb-1'>Phone</p>
-                <p className='text-gray-900 font-medium'>__</p>
+                <p className="text-sm text-gray-500 mb-1">Phone</p>
+                <p className="text-gray-900 font-medium">__</p>
               </div>
 
               {/* Row 2 */}
               <div>
-                <p className='text-sm text-gray-500 mb-1'>Location</p>
-                <p className='text-gray-900 font-medium'>__</p>
+                <p className="text-sm text-gray-500 mb-1">Location</p>
+                <p className="text-gray-900 font-medium">__</p>
               </div>
               <div>
-                <p className='text-sm text-gray-500 mb-1'>Member Since</p>
-                <p className='text-gray-900 font-medium'>
-                  {formatDate(member.createdAt)}
-                </p>
+                <p className="text-sm text-gray-500 mb-1">Member Since</p>
+                <p className="text-gray-900 font-medium">{formatDate(member.createdAt)}</p>
               </div>
               <div>
-                <p className='text-sm text-gray-500 mb-1'>Last Login</p>
-                <p className='text-gray-900 font-medium'>__</p>
+                <p className="text-sm text-gray-500 mb-1">Last Login</p>
+                <p className="text-gray-900 font-medium">__</p>
               </div>
 
               {/* Row 3 */}
               <div>
-                <p className='text-sm text-gray-500 mb-1'>User ID</p>
-                <p className='text-gray-900 font-medium text-xs break-all'>
-                  {member.user.id}
-                </p>
+                <p className="text-sm text-gray-500 mb-1">User ID</p>
+                <p className="text-gray-900 font-medium text-xs break-all">{member.user.id}</p>
               </div>
               <div>
-                <p className='text-sm text-gray-500 mb-1'>Member ID</p>
-                <p className='text-gray-900 font-medium text-xs break-all'>
-                  {member.id}
-                </p>
+                <p className="text-sm text-gray-500 mb-1">Member ID</p>
+                <p className="text-gray-900 font-medium text-xs break-all">{member.id}</p>
               </div>
               <div>
-                <p className='text-sm text-gray-500 mb-1'>Account Status</p>
-                <p className='text-gray-900 font-medium'>
-                  {member.user.isActive ? 'Active' : 'Inactive'}
-                </p>
+                <p className="text-sm text-gray-500 mb-1">Account Status</p>
+                <p className="text-gray-900 font-medium">{member.user.isActive ? 'Active' : 'Inactive'}</p>
               </div>
             </div>
           </div>

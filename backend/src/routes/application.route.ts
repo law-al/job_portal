@@ -1,7 +1,15 @@
 import { Router } from 'express';
 import upload from '../middlewares/multer.js';
 import asyncHandler from '../utils/catchAsync.js';
-import { sendApplication, fetchApplications, getApplication, moveApplicationStage, assignApplicationToUser, rejectApplication } from '../controllers/application.controller.js';
+import {
+  sendApplication,
+  fetchApplications,
+  getApplication,
+  getUserApplications,
+  moveApplicationStage,
+  assignApplicationToUser,
+  rejectApplication,
+} from '../controllers/application.controller.js';
 import { protect } from '../middlewares/protect.js';
 import { verifyCompanyMember } from '../middlewares/verifyCompanyMember.js';
 
@@ -9,6 +17,10 @@ const applicationRoute: Router = Router();
 
 // Public route - for job seekers to submit applications
 applicationRoute.post('/send', protect, upload.none(), asyncHandler(sendApplication));
+
+// User route - for job seekers to fetch their own applications
+// Must come before company routes to avoid route conflicts
+applicationRoute.get('/user/:userId/fetch', protect, asyncHandler(getUserApplications));
 
 // Admin routes - for company members to fetch applications
 // More specific route must come first

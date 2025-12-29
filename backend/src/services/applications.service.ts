@@ -306,6 +306,107 @@ export const GetApplicationsByCompanyId = async (
   }
 };
 
+// NOTE: GET APPLICATIONS BY USER ID (For Job Seekers)
+export const GetApplicationsByUserId = async (
+  userId: string,
+  options?: {
+    page?: number;
+    limit?: number;
+    status?: string;
+    jobId?: string;
+    search?: string;
+  },
+) => {
+  try {
+    const page = options?.page || 1;
+    const limit = options?.limit || 20;
+    const skip = (page - 1) * limit;
+
+    const where: any = {
+      userId,
+    };
+
+    // Add filters
+    if (options?.status) {
+      where.status = options.status;
+    }
+
+    if (options?.jobId) {
+      where.jobId = options.jobId;
+    }
+
+    if (options?.search) {
+      where.OR = [
+        {
+          job: {
+            title: {
+              contains: options.search,
+              mode: 'insensitive',
+            },
+          },
+        },
+        {
+          job: {
+            company: {
+              name: {
+                contains: options.search,
+                mode: 'insensitive',
+              },
+            },
+          },
+        },
+      ];
+    }
+
+    const [applications, total] = await Promise.all([
+      prisma.application.findMany({
+        where,
+        include: {
+          job: {
+            select: {
+              id: true,
+              title: true,
+              slug: true,
+              status: true,
+              company: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+          pipelineStage: {
+            select: {
+              id: true,
+              name: true,
+              order: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: 'desc',
+        },
+        skip,
+        take: limit,
+      }),
+      prisma.application.count({ where }),
+    ]);
+
+    return {
+      applications,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  } catch (error) {
+    throw error;
+  }
+};
+
 export const SaveDocumentsToDb = async ({ resumes, supportingDocuments }: { resumes: Express.Multer.File[] | []; supportingDocuments: Express.Multer.File[] | [] }) => {
   try {
     if (resumes && resumes.length > 0) {
@@ -502,13 +603,21 @@ export const MoveApplicationStage = async (applicationId: string, companyId: str
     const oldStageName = application.pipelineStage?.name || 'Applied';
     const newStageName = newStage.name;
 
-    // Update application stage
+    // Check if this is the final stage (highest order)
+    const maxOrder = Math.max(...application.job.pipelineStages.map((s) => s.order));
+    const isFinalStage = newStage.order === maxOrder;
+
+    // Determine if status should be updated to OFFER
+    const shouldUpdateToOffer = isFinalStage && application.status !== 'OFFER' && application.status !== 'HIRED' && application.status !== 'REJECTED';
+
+    // Update application stage and optionally status
     const updatedApplication = await prisma.application.update({
       where: {
         id: applicationId,
       },
       data: {
         stageId,
+        ...(shouldUpdateToOffer && { status: 'OFFER' }),
       },
       include: {
         pipelineStage: {
@@ -518,24 +627,41 @@ export const MoveApplicationStage = async (applicationId: string, companyId: str
             order: true,
           },
         },
+        job: {
+          include: {
+            pipelineStages: true,
+          },
+        },
       },
     });
 
     // Create STAGE_CHANGED activity
     if (actorId && oldStageName !== newStageName) {
       try {
+        let activityMessage = `Moved from ${oldStageName} to ${newStageName}`;
+        const activityMetadata: Record<string, any> = {
+          fromStage: oldStageName,
+          toStage: newStageName,
+          fromStageId: application.pipelineStage?.id || null,
+          toStageId: stageId,
+        };
+
+        // If reached final stage and status was updated, add that info
+        if (shouldUpdateToOffer) {
+          activityMessage = `Reached final stage: ${newStageName}. Status automatically updated to OFFER.`;
+          activityMetadata.isFinalStage = true;
+          activityMetadata.statusUpdated = true;
+          activityMetadata.newStatus = 'OFFER';
+          activityMetadata.previousStatus = application.status;
+        }
+
         await CreateActivity(
           {
             applicationId,
             actorId,
             type: 'STAGE_CHANGED',
-            message: `Moved from ${oldStageName} to ${newStageName}`,
-            metadata: {
-              fromStage: oldStageName,
-              toStage: newStageName,
-              fromStageId: application.pipelineStage?.id || null,
-              toStageId: stageId,
-            },
+            message: activityMessage,
+            metadata: activityMetadata,
           },
           companyId,
         );

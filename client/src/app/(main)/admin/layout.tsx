@@ -1,52 +1,70 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { LayoutDashboard, Building2, Users, Briefcase, FileText, CreditCard, Package, TrendingUp, Settings, LogOut } from 'lucide-react';
-import { signOut } from 'next-auth/react';
+import { LayoutDashboard, Users, Briefcase, FileText, CreditCard, Package, TrendingUp, Settings, LogOut, Home } from 'lucide-react';
+import { signOut, useSession } from 'next-auth/react';
 import { usePathname, useRouter } from 'next/navigation';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
+  const { data: session } = useSession();
   const router = useRouter();
-  const menuItems = [
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const companyRole = (session?.user as any)?.companyRole;
+  const isAdmin = companyRole === 'ADMIN';
+
+  const allMenuItems = [
     {
       icon: LayoutDashboard,
       label: 'Dashboard',
       href: '/admin',
-      active: true,
+      roles: ['ADMIN', 'HR', 'RECRUITER', 'OTHER'],
     },
-    { icon: Users, label: 'Users', href: '/admin/users', active: false },
-    { icon: Briefcase, label: 'Jobs', href: '/admin/jobs', active: false },
+    {
+      icon: Users,
+      label: 'Users',
+      href: '/admin/users',
+      roles: ['ADMIN'],
+    },
+    {
+      icon: Briefcase,
+      label: 'Jobs',
+      href: '/admin/jobs',
+      roles: ['ADMIN', 'HR', 'RECRUITER'],
+    },
     {
       icon: FileText,
       label: 'Applications',
       href: '/admin/applications',
-      active: false,
+      roles: ['ADMIN', 'HR', 'RECRUITER'],
     },
     {
       icon: CreditCard,
       label: 'Payments',
       href: '/admin/payments',
-      active: false,
+      roles: ['ADMIN'],
     },
     {
       icon: Package,
       label: 'Subscriptions',
       href: '/admin/subscriptions',
-      active: false,
+      roles: ['ADMIN'],
     },
     {
       icon: TrendingUp,
       label: 'Reports',
       href: '/admin/reports',
-      active: false,
+      roles: ['ADMIN', 'HR'],
     },
     {
       icon: Settings,
       label: 'System Settings',
       href: '/admin/settings',
-      active: false,
+      roles: ['ADMIN'],
     },
   ];
+
+  // Filter menu items based on company role
+  const menuItems = companyRole ? allMenuItems.filter((item) => item.roles.includes(companyRole)) : allMenuItems;
 
   const handleSignOut = async () => {
     await signOut({ callbackUrl: '/login' });
@@ -78,8 +96,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Menu Items */}
-        <div className="flex-1 flex flex-col">
-          <nav className="flex-1 p-4 space-y-1">
+        <div className="flex-1 flex justify-between flex-col">
+          <nav className="flex-1 p-4 space-y-1 w-full">
             {menuItems.map((item) => (
               <button
                 key={item.label}
@@ -92,6 +110,17 @@ export default function Layout({ children }: { children: React.ReactNode }) {
                 <span className="text-sm font-medium">{item.label}</span>
               </button>
             ))}
+
+            {/* Back to Homepage - Only for non-admin users */}
+            {!isAdmin && (
+              <button
+                onClick={() => router.push('/')}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-gray-700 hover:bg-gray-100 border-t border-gray-200 mt-4 pt-4"
+              >
+                <Home size={20} />
+                <span className="text-sm font-medium">Back to Homepage</span>
+              </button>
+            )}
           </nav>
 
           <div className="p-4">

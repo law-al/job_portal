@@ -3,8 +3,11 @@ import { DefaultSession } from 'next-auth';
 declare module 'next-auth' {
   interface User {
     role?: string;
+    firstName?: string;
+    lastName?: string;
     isVerified?: boolean;
     companyId?: string;
+    companyRole?: string;
     accessToken?: string;
     refreshTokenHash?: string;
     accessTokenExpiresAt?: number;
@@ -14,8 +17,11 @@ declare module 'next-auth' {
   interface Session {
     user: {
       role?: string;
+      firstName?: string;
+      lastName?: string;
       isVerified?: boolean;
       companyId?: string;
+      companyRole?: string;
       accessToken?: string;
       refreshTokenHash?: string;
       accessTokenExpiresAt?: number;
@@ -27,8 +33,11 @@ declare module 'next-auth' {
 declare module 'next-auth/jwt' {
   interface JWT {
     role?: string;
+    firstName?: string;
+    lastName?: string;
     isVerified?: boolean;
     companyId?: string;
+    companyRole?: string;
     accessToken?: string;
     refreshTokenHash?: string;
     accessTokenExpiresAt?: number;

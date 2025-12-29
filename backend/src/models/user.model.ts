@@ -8,6 +8,18 @@ export const UserRoleEnum = z.enum(['USER', 'COMPANY'], {
 export type UserRoleType = z.infer<typeof UserRoleEnum>;
 
 export const RegisterSchema = z.object({
+  firstName: z
+    .string({ message: 'First name is required.' })
+    .min(1, { message: 'First name must be at least 1 character.' })
+    .max(100, { message: 'First name cannot exceed 100 characters.' })
+    .trim(),
+
+  lastName: z
+    .string({ message: 'Last name is required.' })
+    .min(1, { message: 'Last name must be at least 1 character.' })
+    .max(100, { message: 'Last name cannot exceed 100 characters.' })
+    .trim(),
+
   email: z
     .email({ message: 'Invalid email address.' })
     .min(5, { message: 'Email must be at least 5 characters.' })

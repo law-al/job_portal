@@ -8,6 +8,7 @@ import { useSession } from 'next-auth/react';
 import { Loader2, User, Check } from 'lucide-react';
 import { toast } from 'sonner';
 import { assignApplicationAction } from '@/app/actions/applications.actions';
+import { getInitials } from '@/lib/utils';
 
 interface CompanyMember {
   id: string;
@@ -188,7 +189,7 @@ export default function AssignUserDialog({ open, onOpenChange, applicationId, cu
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center text-white font-semibold">
-                      {member.user.email.charAt(0).toUpperCase()}
+                      {getInitials({ email: member.user.email, default: 'U' })}
                     </div>
                     <div className="text-left">
                       <p className="font-medium text-gray-900">{member.user.email}</p>

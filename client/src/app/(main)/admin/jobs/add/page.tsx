@@ -2,7 +2,8 @@
 'use client';
 
 import React, { useState, useActionState, useEffect } from 'react';
-import { ChevronRight, X, Plus, Trash2, AlertCircle } from 'lucide-react';
+import { X, Plus, Trash2, AlertCircle } from 'lucide-react';
+import AppBreadCrumb from '@/components/AppBreadCrumb';
 import { useSession } from 'next-auth/react';
 import { createJobAction } from '@/app/actions/job.actions';
 import { fetchWithRetry } from '@/lib/fetchWithRetry';
@@ -230,13 +231,14 @@ export default function AddJobPage() {
     <>
       {/* Breadcrumb */}
       <div className='bg-white border-b border-gray-200 px-8 py-4'>
-        <div className='flex items-center gap-2 text-sm text-gray-500 mb-2'>
-          <span className='hover:text-gray-700 cursor-pointer'>
-            Jobs Management
-          </span>
-          <ChevronRight size={16} />
-          <span className='text-gray-900 font-medium'>Add New Job</span>
-        </div>
+        <AppBreadCrumb
+          items={[
+            { label: 'Jobs Management', href: '/admin/jobs' },
+            { label: 'Add New Job' }
+          ]}
+          homeHref="/admin"
+          className="mb-2"
+        />
         <h1 className='text-3xl font-bold text-gray-900'>Post a New Job</h1>
       </div>
 

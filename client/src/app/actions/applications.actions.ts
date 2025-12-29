@@ -174,12 +174,16 @@ export const moveApplicationStageAction = async (applicationId: string, stageId:
       };
     }
 
+    const responseData = await response.json().catch(() => ({ message: 'Application stage moved successfully' }));
+
     // Revalidate the application detail page
     revalidatePath(`/admin/applications/${applicationId}`);
 
     return {
       success: true,
-      message: 'Application stage moved successfully',
+      message: responseData.message || 'Application stage moved successfully',
+      statusUpdated: responseData.data?.statusUpdated || false,
+      isFinalStage: responseData.data?.isFinalStage || false,
     };
   } catch (error) {
     console.error('Error moving application stage:', error);

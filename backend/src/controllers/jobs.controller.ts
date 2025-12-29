@@ -126,16 +126,36 @@ export const openJob = async (req: Request, res: Response, next: NextFunction) =
 };
 
 export const getCompanyJobs = async (req: Request, res: Response, next: NextFunction) => {
-  const { id: companyId } = req.params;
-  if (!companyId) throw new BadRequestException('a company id is required', ErrorCodes.MISSING_COMPANY_ID);
+  try {
+    const { id: companyId } = req.params;
+    const { page, limit, status, search } = req.query;
 
-  const jobs = await FindCompanyJobs(companyId);
+    if (!companyId) {
+      throw new BadRequestException('Company ID is required', ErrorCodes.MISSING_COMPANY_ID);
+    }
 
-  res.status(200).json({
-    success: true,
-    message: 'jobs fetched successfully',
-    data: { jobs },
-  });
+    const options: {
+      page?: number;
+      limit?: number;
+      status?: string;
+      search?: string;
+    } = {};
+
+    if (page) options.page = parseInt(page as string);
+    if (limit) options.limit = parseInt(limit as string);
+    if (status) options.status = status as string;
+    if (search) options.search = search as string;
+
+    const result = await FindCompanyJobs(companyId, options);
+
+    res.status(200).json({
+      success: true,
+      message: 'jobs fetched successfully',
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
 
 export const getCompanyJob = async (req: Request, res: Response, next: NextFunction) => {

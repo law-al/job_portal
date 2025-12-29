@@ -99,13 +99,14 @@ enum ActivityType {
   APPLICATION_CREATED
 }
 
-
 model User {
   id                              String    @id @default(uuid()) @db.Uuid()
   provider                        String?
   providerId                      String?
   email                           String    @unique @db.VarChar(255)
   password                        String?   @db.VarChar(255)
+  firstName                       String?   @db.VarChar(100)
+  lastName                        String?   @db.VarChar(100)
   role                            UserRole  @default(USER)
   isVerified                      Boolean   @default(false)
   isActive                        Boolean   @default(true)
@@ -145,9 +146,9 @@ model Company {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  invitations Invitation[]
-  members     UserCompany[]
-  jobs        Job[]
+  invitations  Invitation[]
+  members      UserCompany[]
+  jobs         Job[]
   applications Application[]
 
   @@unique([id])
@@ -232,7 +233,7 @@ model PipelineStage {
   name  String @db.VarChar(255)
   order Int
 
-  job          Job            @relation(fields: [jobId], references: [id])
+  job          Job           @relation(fields: [jobId], references: [id])
   applications Application[]
 
   @@map("pipelineStages")
@@ -241,7 +242,7 @@ model PipelineStage {
 model Application {
   id              String            @id @default(uuid()) @db.Uuid()
   jobId           String            @db.Uuid()
-  companyId       String           @db.Uuid()
+  companyId       String            @db.Uuid()
   userId          String            @db.Uuid()
   firstName       String            @db.VarChar(100)
   lastName        String            @db.VarChar(100)
@@ -252,7 +253,7 @@ model Application {
   coverLetter     String?           @db.Text
   expectedSalary  Int?
   portfolioUrl    String?
-  resumeId       String?
+  resumeId        String?
   documentsIds    String[]
   status          ApplicationStatus @default(APPLIED)
   stageId         String?           @db.Uuid()
@@ -260,12 +261,12 @@ model Application {
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
-  job             Job                @relation(fields: [jobId], references: [id])
-  applicant       User               @relation(fields: [userId], references: [id])
-  company         Company         @relation(fields: [companyId], references: [id])
-  pipelineStage   PipelineStage?     @relation(fields: [stageId], references: [id])
-  assigned        UserCompany?       @relation("AssignedApplications", fields: [assignedTo], references: [id])
-  activities      ApplicationActivity[]
+  job           Job                   @relation(fields: [jobId], references: [id])
+  applicant     User                  @relation(fields: [userId], references: [id])
+  company       Company               @relation(fields: [companyId], references: [id])
+  pipelineStage PipelineStage?        @relation(fields: [stageId], references: [id])
+  assigned      UserCompany?          @relation("AssignedApplications", fields: [assignedTo], references: [id])
+  activities    ApplicationActivity[]
 
   @@index([id])
   @@index([jobId])
@@ -274,19 +275,19 @@ model Application {
 }
 
 model ApplicationActivity {
-  id             String      @id @default(uuid()) @db.Uuid()
+  id String @id @default(uuid()) @db.Uuid()
 
-  applicationId  String      @db.Uuid()
-  actorId        String?     @db.Uuid()
+  applicationId String  @db.Uuid()
+  actorId       String? @db.Uuid()
 
-  type           ActivityType
-  message        String
-  metadata       Json?
+  type     ActivityType
+  message  String
+  metadata Json?
 
-  createdAt      DateTime    @default(now())
+  createdAt DateTime @default(now())
 
-  application    Application @relation(fields: [applicationId], references: [id])
-  actor          User?       @relation(fields: [actorId], references: [id])
+  application Application @relation(fields: [applicationId], references: [id])
+  actor       User?       @relation(fields: [actorId], references: [id])
 
   @@index([applicationId])
   @@index([actorId])
