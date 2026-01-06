@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
-import { Settings, SearchIcon, ChevronDown } from 'lucide-react';
+import React from 'react';
+import { Settings, SearchIcon } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { User } from 'next-auth';
 import { useSession } from 'next-auth/react';
 
 export interface FormData {
@@ -12,18 +11,15 @@ export interface FormData {
   subject: string;
   preheader: string;
   content: string;
-  editorState: string;
   isActive: boolean;
   isDefault: boolean;
   tags: string[];
   variables: string[];
-  metadata: {
-    fromName: string;
-    fromEmail: string;
-    replyTo: string;
-    backgroundColor: string;
-    toEmail: string;
-  };
+  fromName: string;
+  fromEmail: string;
+  replyTo: string;
+  backgroundColor: string;
+  toEmail: string;
 }
 
 export const EMAIL_TEMPLATE_TYPES = [
@@ -42,9 +38,13 @@ export const EMAIL_TEMPLATE_TYPES = [
 export default function LeftForm({
   formData,
   handleChange,
+  handleSelectChange,
+  errors,
 }: {
   formData: FormData;
-  handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>, type?: 'default' | 'metadata') => void;
+  handleChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => void;
+  handleSelectChange: (name: string, value: string) => void;
+  errors?: Record<string, string[]>;
 }) {
   const { data: session } = useSession();
   const companyId = session?.user?.companyId;
@@ -67,11 +67,12 @@ export default function LeftForm({
               <input
                 type="text"
                 placeholder="e.g. Candidate Welcome V2"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${errors?.name ? 'border-red-500' : 'border-gray-200'}`}
                 name="name"
                 value={formData.name}
                 onChange={handleChange}
               />
+              {errors?.name && <p className="text-red-500 text-xs mt-1">{errors.name[0]}</p>}
             </div>
 
             {/* Company ID */}
@@ -85,8 +86,9 @@ export default function LeftForm({
                   type="text"
                   placeholder="Search Company ID..."
                   className="w-full pl-9 pr-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
-                  name="companyId"
                   value={companyId || ''}
+                  onChange={handleChange}
+                  name="companyId"
                   disabled
                 />
               </div>
@@ -95,8 +97,8 @@ export default function LeftForm({
             {/* Template Type */}
             <div>
               <label className="block text-sm font-medium text-gray-900 mb-2">Template Type</label>
-              <Select value={formData.templateType} onValueChange={(value) => handleChange({ target: { name: 'templateType', value } } as React.ChangeEvent<HTMLInputElement>)}>
-                <SelectTrigger className="w-full">
+              <Select value={formData.templateType} onValueChange={(value) => handleSelectChange('templateType', value)}>
+                <SelectTrigger className={`w-full ${errors?.templateType ? 'border-red-500' : ''}`}>
                   <SelectValue placeholder="Select template type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -107,6 +109,7 @@ export default function LeftForm({
                   ))}
                 </SelectContent>
               </Select>
+              {errors?.templateType && <p className="text-red-500 text-xs mt-1">{errors.templateType[0]}</p>}
             </div>
 
             {/* Subject Line */}
@@ -117,11 +120,14 @@ export default function LeftForm({
               <input
                 type="text"
                 placeholder="e.g. Welcome to the team!"
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm ${
+                  errors?.subject ? 'border-red-500' : 'border-gray-200'
+                }`}
                 name="subject"
                 value={formData.subject}
                 onChange={handleChange}
               />
+              {errors?.subject && <p className="text-red-500 text-xs mt-1">{errors.subject[0]}</p>}
             </div>
 
             {/* Preheader Text */}
@@ -164,8 +170,8 @@ export default function LeftForm({
                 placeholder="e.g. Company HR Team"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 name="fromName"
-                value={formData.metadata.fromName}
-                onChange={(e) => handleChange(e, 'metadata')}
+                value={formData.fromName}
+                onChange={handleChange}
               />
             </div>
 
@@ -177,8 +183,8 @@ export default function LeftForm({
                 placeholder="e.g. hr@company.com"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 name="fromEmail"
-                value={formData.metadata.fromEmail}
-                onChange={(e) => handleChange(e, 'metadata')}
+                value={formData.fromEmail}
+                onChange={handleChange}
               />
             </div>
 
@@ -190,8 +196,8 @@ export default function LeftForm({
                 placeholder="e.g. candidate@company.com"
                 className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
                 name="toEmail"
-                value={formData.metadata.toEmail || ''}
-                onChange={(e) => handleChange(e, 'metadata')}
+                value={formData.toEmail || ''}
+                onChange={handleChange}
               />
             </div>
 
@@ -207,8 +213,8 @@ export default function LeftForm({
                   placeholder="#ffffff"
                   className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm font-mono"
                   name="backgroundColor"
-                  value={formData.metadata.backgroundColor}
-                  onChange={(e) => handleChange(e, 'metadata')}
+                  value={formData.backgroundColor}
+                  onChange={handleChange}
                 />
               </div>
             </div>

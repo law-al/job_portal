@@ -1,4 +1,5 @@
 'use server';
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { z } from 'zod';
 import { authOptions } from '@/auth';
@@ -38,7 +39,6 @@ export const createNoteAction = async (applicationId: string, content: string) =
     // Validate input
     const parsed = CreateNoteSchema.safeParse({ content, applicationId });
     if (!parsed.success) {
-
       return {
         success: false,
         errors: parsed.error.flatten().fieldErrors,

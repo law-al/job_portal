@@ -1,6 +1,6 @@
 import { EditorState, ParagraphNode, TextNode } from 'lexical';
 import { HeadingNode } from '@lexical/rich-text';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AutoFocusPlugin } from '@lexical/react/LexicalAutoFocusPlugin';
 import { LexicalComposer } from '@lexical/react/LexicalComposer';
 import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
@@ -13,7 +13,6 @@ import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext
 import { LinkPlugin } from '@lexical/react/LexicalLinkPlugin';
 import Toolbar from './Toolbar';
 import { LinkNode } from '@lexical/link';
-import { useSystemSettings } from '../../../provider';
 
 // Catch any errors that occur during Lexical updates and log them
 // or throw them as needed. If you don't throw them, Lexical will
@@ -32,22 +31,74 @@ function MyOnChangePlugin({ onChange }: { onChange: (editorState: EditorState) =
   return null;
 }
 
-export default function Editor({ editEmailTemplate }: { editEmailTemplate: boolean }) {
-  const [editorState, setEditorState] = useState<EditorState | null>(null);
+// Plugin to load content from database
+function LoadContentPlugin({ content }: { content: string }) {
+  const [editor] = useLexicalComposerContext();
+  const hasLoadedRef = useRef(false);
 
-  console.log(editEmailTemplate);
+  useEffect(() => {
+    if (!content || hasLoadedRef.current) return;
+
+    try {
+      const editorState = editor.parseEditorState(content);
+      editor.setEditorState(editorState);
+      hasLoadedRef.current = true;
+    } catch (error) {
+      console.error('Failed to parse editor state:', error);
+    }
+  }, [content, editor]);
+
+  return null;
+}
+// Plugin to control editability
+function EditablePlugin({ editable }: { editable: boolean }) {
+  const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    editor.setEditable(editable);
+  }, [editor, editable]);
+
+  return null;
+}
+
+export default function Editor({
+  editEmailTemplate,
+  handleEditorState,
+  editorState,
+  initialContent,
+}: {
+  editEmailTemplate: boolean;
+  handleEditorState?: (editorState: string) => void;
+  editorState?: string;
+  initialContent?: string;
+}) {
+  console.log('editEmailTemplate:', editEmailTemplate);
+  console.log('initialContent:', initialContent);
+
   const toolbarClassName = editEmailTemplate ? 'pointer-events-auto' : 'pointer-events-none opacity-50 select-none';
-  const contentEditableClassName = editEmailTemplate ? 'cursor-text' : 'cursor-not-allowed pointer-events-none opacity-50 select-none';
+  const contentEditableClassName = editEmailTemplate ? 'cursor-text' : 'cursor-not-allowed select-none';
+
   const initialConfig = {
     namespace: 'MyEditor',
+    editorState: editorState || initialContent || undefined,
     theme,
     onError,
+    editable: editEmailTemplate, // Control editability from the start
     nodes: [ParagraphNode, HeadingNode, TextNode, LinkNode],
   };
 
-  const onChange = useCallback((editorState: EditorState) => {
-    setEditorState(editorState);
-  }, []);
+  const onChange = useCallback(
+    (editorState: EditorState) => {
+      editorState.read(() => {
+        const json = editorState.toJSON();
+        console.log('json', json);
+        if (handleEditorState) {
+          handleEditorState(JSON.stringify(json));
+        }
+      });
+    },
+    [handleEditorState],
+  );
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
@@ -55,7 +106,6 @@ export default function Editor({ editEmailTemplate }: { editEmailTemplate: boole
         <div className={`shrink-0 border-b border-gray-200 p-3 bg-gray-50 ${toolbarClassName}`}>
           <Toolbar />
         </div>
-
         <div className="flex-1 overflow-hidden relative">
           <RichTextPlugin
             contentEditable={
@@ -68,11 +118,14 @@ export default function Editor({ editEmailTemplate }: { editEmailTemplate: boole
             ErrorBoundary={LexicalErrorBoundary}
           />
         </div>
-
         <HistoryPlugin />
         <LinkPlugin />
-        <AutoFocusPlugin />
-        <MyOnChangePlugin onChange={onChange} />
+        {editEmailTemplate && <AutoFocusPlugin />}
+        {handleEditorState && <MyOnChangePlugin onChange={onChange} />}
+        {/* Load content dynamically if initialContent is provided and different from editorState */}
+        {initialContent && !editorState && <LoadContentPlugin content={initialContent} />}
+        {/* Control editability dynamically */}
+        <EditablePlugin editable={editEmailTemplate} />
       </div>
     </LexicalComposer>
   );

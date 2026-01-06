@@ -1,6 +1,6 @@
 'use client';
 import { sendApplicationAction } from '@/app/actions/applications.actions';
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import React, { useContext, createContext, useState, useRef, useTransition } from 'react';
 import { toast } from 'sonner';
 

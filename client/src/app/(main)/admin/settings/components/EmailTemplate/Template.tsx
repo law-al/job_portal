@@ -1,6 +1,5 @@
 import React from 'react';
-import { PlusIcon, Search } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Search } from 'lucide-react';
 import AddTemplate from './AddTemplate';
 
 interface Template {
@@ -30,28 +29,37 @@ export default function Template({ templates, selectedTemplate, onSelectTemplate
       </div>
 
       <div className="space-y-2">
-        {templates.map((template) => (
-          <button
-            key={template.id}
-            onClick={() => onSelectTemplate(template.id)}
-            className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors ${
-              selectedTemplate === template.id ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50 border border-transparent'
-            }`}
-          >
-            <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-xl shrink-0">{template.icon}</div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <h4 className="font-medium text-gray-900 text-sm">{template.name}</h4>
-                {template.active && <span className="w-2 h-2 bg-green-500 rounded-full"></span>}
-              </div>
-              <p className="text-xs text-gray-500 truncate">{template.description}</p>
-            </div>
-          </button>
-        ))}
+        {templates.length === 0 ? (
+          <div className="text-center py-8">
+            <p className="text-gray-500 text-sm mb-4">No email templates found</p>
+            <AddTemplate />
+          </div>
+        ) : (
+          <>
+            {templates.map((template) => (
+              <button
+                key={template.id}
+                onClick={() => onSelectTemplate(template.id)}
+                className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-colors ${
+                  selectedTemplate === template.id ? 'bg-blue-50 border border-blue-200' : 'hover:bg-gray-50 border border-transparent'
+                }`}
+              >
+                <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-xl shrink-0">{template.icon}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <h4 className="font-medium text-gray-900 text-sm">{template.name}</h4>
+                    {template.active && <span className="w-2 h-2 bg-green-500 rounded-full"></span>}
+                  </div>
+                  <p className="text-xs text-gray-500 truncate">{template.description}</p>
+                </div>
+              </button>
+            ))}
 
-        <div className="flex justify-center mt-4">
-          <AddTemplate />
-        </div>
+            <div className="flex justify-center mt-4">
+              <AddTemplate />
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

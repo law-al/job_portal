@@ -1,8 +1,7 @@
 import React from 'react';
-import { EyeIcon } from 'lucide-react';
 import Editor from '../editor/Editor';
 
-export default function RightForm() {
+export default function RightForm({ handleEditorState, errors }: { handleEditorState: (editorState: string) => void; errors?: Record<string, string[]> }) {
   return (
     <div className="bg-gray-100 col-span-9 h-full overflow-y-auto">
       <div className="rounded-lg h-full flex flex-col">
@@ -16,7 +15,11 @@ export default function RightForm() {
           </div>
         </div>
 
-        <Editor editEmailTemplate={true} />
+        <div className="flex-1 flex flex-col">
+          <Editor editEmailTemplate={true} handleEditorState={handleEditorState} />
+          {errors?.editorState && <p className="text-red-500 text-xs mt-2 px-4 pb-2">{errors.editorState[0]}</p>}
+          {errors?.content && <p className="text-red-500 text-xs mt-2 px-4 pb-2">{errors.content[0]}</p>}
+        </div>
       </div>
     </div>
   );
