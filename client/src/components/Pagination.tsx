@@ -2,18 +2,7 @@
 
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
-
-interface PaginationProps {
-  pagination: {
-    page: number;
-    limit: number;
-    total: number;
-    totalPages: number;
-  };
-  basePath: string; // e.g., '/my-applications', '/jobs', '/admin/users'
-  itemName?: string; // e.g., 'applications', 'jobs', 'users' (default: 'items')
-  emptyMessage?: string; // Custom message when no items found
-}
+import type { PaginationProps } from '@/types';
 
 export default function Pagination({ pagination, basePath, itemName = 'items', emptyMessage }: PaginationProps) {
   const sp = useSearchParams();

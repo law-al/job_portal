@@ -5,32 +5,7 @@ import React from 'react';
 import { formatDistanceToNowStrict } from 'date-fns';
 import Link from 'next/link';
 import { getInitials } from '@/lib/utils';
-
-interface Application {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  phone: string;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-  job: {
-    id: string;
-    title: string;
-    slug: string;
-    status: string;
-    company: {
-      id: string;
-      name: string;
-    };
-  };
-  pipelineStage: {
-    id: string;
-    name: string;
-    order: number;
-  } | null;
-}
+import type { Application } from '@/types';
 
 interface ApplicationListProps {
   applications: Application[];

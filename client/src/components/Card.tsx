@@ -1,12 +1,5 @@
 import React from 'react';
-
-interface Stat {
-  label: string;
-  value: string;
-  change: string;
-  positive: boolean;
-  neutral: boolean;
-}
+import type { Stat } from '@/types';
 
 export default function Card({ stat }: { stat: Stat }) {
   return (

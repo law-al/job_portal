@@ -4,11 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Home } from 'lucide-react';
 import { Breadcrumb, BreadcrumbList, BreadcrumbItem, BreadcrumbLink, BreadcrumbPage, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
-
-export interface BreadcrumbItemType {
-  label: string;
-  href?: string; // If href is provided, it's a link. If not, it's the current page.
-}
+import type { BreadcrumbItemType } from '@/types';
 
 interface AppBreadCrumbProps {
   items: BreadcrumbItemType[];

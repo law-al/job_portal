@@ -3,45 +3,7 @@ import Pagination from '@/components/Pagination';
 import SearchHeader from './components/SearchHeader';
 import JobListingsWrapper from './components/JobListingsWrapper';
 import Jobs from './components/Jobs';
-
-interface SearchParams {
-  search?: string;
-  location?: string;
-  jobType?: string; // comma-separated from filters
-  experienceLevel?: string;
-  page?: string;
-  limit?: string;
-  isRemote?: string;
-}
-
-interface GetAllJobsResponse {
-  success: boolean;
-  message: string;
-  data: {
-    jobs: Array<{
-      id: string;
-      slug: string;
-      title: string;
-      companyId: string;
-      company?: { id: string; name: string; logo?: string | null } | null;
-      location: string;
-      salary_range?: string | null;
-      jobType?: string | null;
-      experienceLevel?: string | null;
-      isRemote?: boolean | null;
-      status?: string | null;
-      isClosed?: boolean | null;
-      deadline?: string | null;
-      createdAt?: string;
-    }>;
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
-    };
-  };
-}
+import type { JobSearchParams, GetAllJobsResponse } from '@/types';
 
 const normalizeJobType = (jobType?: string) => {
   if (!jobType) return undefined;
@@ -62,7 +24,7 @@ const normalizeExperience = (level?: string) => {
   return level.toUpperCase();
 };
 
-const buildQueryString = (params: SearchParams) => {
+const buildQueryString = (params: JobSearchParams) => {
   const qs = new URLSearchParams();
   if (params.search) qs.set('search', params.search);
   if (params.location) qs.set('location', params.location);
@@ -80,8 +42,8 @@ const buildQueryString = (params: SearchParams) => {
   return qs.toString();
 };
 
-export default async function JobListings({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  const params = (await searchParams) as SearchParams;
+export default async function JobListings({ searchParams }: { searchParams: Promise<JobSearchParams> }) {
+  const params = (await searchParams) as JobSearchParams;
   const query = buildQueryString(params);
 
   let jobs: GetAllJobsResponse['data']['jobs'] = [];

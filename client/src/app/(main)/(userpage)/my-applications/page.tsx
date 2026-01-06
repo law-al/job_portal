@@ -4,55 +4,9 @@ import MyApplications from './components/Myapplications';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/auth';
 import { fetchWithRetry } from '@/lib/fetchWithRetry';
+import type { ApplicationSearchParams, ApplicationResponse, Application, Pagination } from '@/types';
 
-interface SearchParams {
-  tab?: string;
-  sortBy?: string;
-  search?: string;
-  page?: string;
-  limit?: string;
-  status?: string;
-  jobId?: string;
-}
-
-interface ApplicationResponse {
-  success: boolean;
-  data: {
-    applications: Array<{
-      id: string;
-      firstName: string;
-      lastName: string;
-      email: string;
-      phone: string;
-      status: string;
-      createdAt: string;
-      updatedAt: string;
-      job: {
-        id: string;
-        title: string;
-        slug: string;
-        status: string;
-        company: {
-          id: string;
-          name: string;
-        };
-      };
-      pipelineStage: {
-        id: string;
-        name: string;
-        order: number;
-      } | null;
-    }>;
-    pagination: {
-      page: number;
-      limit: number;
-      total: number;
-      totalPages: number;
-    };
-  };
-}
-
-export default async function MyApplicationsPage({ searchParams }: { searchParams: Promise<SearchParams> }) {
+export default async function MyApplicationsPage({ searchParams }: { searchParams: Promise<ApplicationSearchParams> }) {
   const params = await searchParams;
   const session = await getServerSession(authOptions);
 
@@ -69,7 +23,7 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
     );
   }
 
-  let applications: ApplicationResponse['data']['applications'] = [];
+  let applications: Application[] = [];
   let pagination: ApplicationResponse['data']['pagination'] = {
     page: Number(params.page) || 1,
     limit: Number(params.limit) || 20,
@@ -105,7 +59,7 @@ export default async function MyApplicationsPage({ searchParams }: { searchParam
 
     if (response.ok) {
       const data = (await response.json()) as ApplicationResponse;
-      applications = data.data?.applications || [];
+      applications = (data.data?.applications || []) as Application[];
       pagination = data.data?.pagination || pagination;
     }
   } catch (error) {
