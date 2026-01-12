@@ -113,6 +113,7 @@ model User {
   isDeleted                       Boolean   @default(false)
   isEmailVerified                 Boolean   @default(false)
   isProfileCompleted              Boolean   @default(false)
+  hasCompletedProfile             Boolean   @default(false)
   isPasswordChanged               Boolean   @default(false)
   passwordChangedAt               DateTime?
   passwordResetToken              String?   @db.VarChar(255)
@@ -122,10 +123,11 @@ model User {
   createdAt                       DateTime  @default(now())
   updatedAt                       DateTime  @updatedAt
 
-  company    UserCompany[]
-  invitee    Invitation[]
-  applicants Application[]
-  activities ApplicationActivity[]
+  profile     Profile?
+  company     UserCompany[]
+  invitee     Invitation[]
+  applicants  Application[]
+  activities  ApplicationActivity[]
 
   @@unique([id])
   @@unique([providerId])
@@ -292,4 +294,42 @@ model ApplicationActivity {
   @@index([applicationId])
   @@index([actorId])
   @@map("application_activities")
+}
+
+model Profile {
+  id                  String          @id @default(uuid()) @db.Uuid()
+  userId              String          @unique @db.Uuid()
+
+  // Basic Information
+  professionalHeadline String?         @db.VarChar(255)
+  aboutMe             String?         @db.Text
+  phone               String?         @db.VarChar(20)
+  location            String?         @db.VarChar(255)
+  linkedin            String?         @db.VarChar(255)
+  github              String?         @db.VarChar(255)
+  portfolioUrl        String?         @db.VarChar(255)
+  resumeId            String[]        @db.VarChar(255)
+
+  // Professional Details
+  skills              String[]        // Array of skill strings
+  preferredLocations  String[]        // Array of preferred location strings
+  expectedSalary      Int?            // Expected salary range (min)
+  expectedSalaryMax   Int?            // Expected salary range (max)
+
+  // Experience (stored as JSON array)
+  experiences         Json?           // Array of { title, company, location, startDate, endDate, description, isCurrent }
+
+  // Education (stored as JSON array)
+  education           Json?           // Array of { degree, institution, fieldOfStudy, startDate, endDate, isCurrent }
+
+  // Certifications (stored as JSON array)
+  certifications      Json?           // Array of { name, issuer, issueDate, expiryDate, credentialUrl }
+
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  user                User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("profiles")
 }

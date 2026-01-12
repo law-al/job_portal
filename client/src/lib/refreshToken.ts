@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { API_BASE_URL } from './config';
+
 interface RefreshTokenResponse {
   success: boolean;
   data: {
@@ -13,9 +15,7 @@ interface RefreshTokenResponse {
  * @param refreshTokenHash - Refresh token hash.
  * @returns The new access token or null if refresh fails
  */
-export async function refreshAccessToken(
-  refreshTokenHash: string
-): Promise<string | null> {
+export async function refreshAccessToken(refreshTokenHash: string): Promise<string | null> {
   try {
     const tokenHash = refreshTokenHash;
 
@@ -25,21 +25,16 @@ export async function refreshAccessToken(
       throw new Error('No refresh token available');
     }
 
-    const response = await fetch(
-      `http://localhost:3000/api/v1/auth/refresh/${tokenHash}`,
-      {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include',
-      }
-    );
+    const response = await fetch(`${API_BASE_URL}/auth/refresh/${tokenHash}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+    });
 
     if (!response.ok) {
-      const errorData = await response
-        .json()
-        .catch(() => ({ message: 'Token refresh failed' }));
+      const errorData = await response.json().catch(() => ({ message: 'Token refresh failed' }));
       throw new Error(errorData.message || 'Token refresh failed');
     }
 

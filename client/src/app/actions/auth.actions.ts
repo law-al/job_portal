@@ -4,6 +4,7 @@ import { fetchWithRetry } from '@/lib/fetchWithRetry';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import z from 'zod';
+import { API_BASE_URL } from '@/lib/config';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -12,11 +13,7 @@ const RegisterInvitedUserSchema = z.object({
   token: z.string(),
 });
 
-export const registerInvitedUser = async (
-  token: string,
-  prevState: any,
-  formData: FormData
-) => {
+export const registerInvitedUser = async (token: string, prevState: any, formData: FormData) => {
   try {
     const raw = {
       email: formData.get('email'),
@@ -31,7 +28,7 @@ export const registerInvitedUser = async (
       };
     }
 
-    const response = await fetch('http://localhost:3000/api/v1/auth/accept', {
+    const response = await fetch(`${API_BASE_URL}/auth/accept`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

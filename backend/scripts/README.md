@@ -4,7 +4,7 @@ This script allows you to create multiple jobs for testing purposes.
 
 ## Prerequisites
 
-1. Make sure your backend server is running on `http://localhost:3000`
+1. Make sure your backend server is running on `http://localhost:5000`
 2. You need:
    - A valid company ID (UUID)
    - A valid access token (from logging in as a company user with ADMIN or HR role)

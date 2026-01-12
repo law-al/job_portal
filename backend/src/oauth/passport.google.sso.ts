@@ -4,7 +4,7 @@ import config from '../config/config.js';
 import { prisma } from '../utils/prismaClient.js';
 
 const GoogleStrategy = strategy.Strategy;
-const GOOGLE_CALLBACK_URL = 'http://localhost:3000/api/v1/auth/google/callback';
+const GOOGLE_CALLBACK_URL = 'http://localhost:5000/api/v1/auth/google/callback';
 
 /*passport.use(
   new GoogleStrategy(

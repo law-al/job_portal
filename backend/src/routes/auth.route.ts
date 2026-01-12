@@ -25,7 +25,7 @@ import { verifyCompanyMember } from '../middlewares/verifyCompanyMember.js';
 
 const authRoute: Router = Router();
 
-const GOOGLE_FAILURE_URL = 'http://localhost:3000/auth/fail';
+const GOOGLE_FAILURE_URL = 'http://localhost:5000/auth/fail';
 
 // register
 authRoute.post('/register', asyncHandler(register));

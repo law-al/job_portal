@@ -65,6 +65,7 @@ export default function JobSeekerSignUp() {
 
   const mutation = useMutation({
     mutationFn: async (data: RegisterSchemaWithRole) => {
+      console.log(data);
       const response = await api.post('/auth/register', data);
       return response.data.data;
     },
@@ -91,6 +92,7 @@ export default function JobSeekerSignUp() {
       toast.success('Registration successful! Please check your email to verify your account.');
     },
     onError: (error: unknown) => {
+      console.log(error);
       setRegistrationSuccess(false);
       const axiosError = error as {
         response?: { data?: { message?: string } };

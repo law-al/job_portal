@@ -3,13 +3,14 @@
 import axios, { AxiosError } from 'axios';
 
 export const api = axios.create({
-  baseURL: 'http://localhost:3000/api/v1/',
+  baseURL: `http://localhost:5000/api/v1`,
   withCredentials: true,
 });
 
 api.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
+    console.log(error);
     const originalRequest: any = error.config;
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
@@ -25,7 +26,7 @@ api.interceptors.response.use(
     }
 
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;

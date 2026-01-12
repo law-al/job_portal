@@ -7,6 +7,7 @@
     // Environment Settings
     "module": "nodenext",
     "target": "esnext",
+    "noEmit": false,
 
     // **CRITICAL FIX:** Using standard Node.js library types
     "lib": ["esnext"],
@@ -15,8 +16,8 @@
 
     // Other Outputs
     "sourceMap": true,
-    "declaration": true,
-    "declarationMap": true,
+    "declaration": false,
+    "declarationMap": false,
 
     // Recommended Strict Options
     "strict": true,

@@ -42,14 +42,9 @@ export const sendForgetPasswordEmail = async (email: string, token: string) => {
   }
 };
 
-export const sendInvitationEmail = async (
-  email: string,
-  token: string,
-  companyName: string,
-  role: string,
-) => {
+export const sendInvitationEmail = async (email: string, token: string, companyName: string, role: string) => {
   try {
-    const inviteUrl = `http://localhost:3000/invite/accept?token=${token}`;
+    const inviteUrl = `http://localhost:5000/invite/accept?token=${token}`;
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h2>You've been invited to join ${companyName}</h2>

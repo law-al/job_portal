@@ -14,7 +14,7 @@ const app: Express = express();
 
 app.use(
   cors({
-    origin: ['http://localhost:3000', 'http://localhost:3001'],
+    origin: ['http://localhost:5000', 'http://localhost:3000'],
     credentials: true,
   }),
 );
@@ -26,6 +26,21 @@ app.use(passport.initialize());
 
 console.log('Root route registered');
 app.use('/api/v1', rootRoute);
+
+app.get('/health', (req: Request, res: Response) => {
+  const healthcheck = {
+    uptime: process.uptime(),
+    message: 'OK',
+    timestamp: new Date().toDateString(),
+  };
+
+  try {
+    res.status(200).json(healthcheck);
+  } catch (error: any) {
+    healthcheck.message = error.message;
+    res.status(503).json(healthcheck);
+  }
+});
 
 app.get('/', (req: Request, res: Response) => {
   logInfo('App is running on');

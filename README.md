@@ -246,7 +246,7 @@ Job Portal/
    pnpm dev
    ```
 
-   The API will be available at `http://localhost:3000`
+   The API will be available at `http://localhost:5000`
 
 8. **Start the frontend server**
 

@@ -1,5 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
+import { API_BASE_URL } from './config';
+
 interface FetchOptions {
   url: string | URL | Request;
   options?: RequestInit | undefined;
@@ -12,13 +14,10 @@ const refreshFn = async (refreshTokenHash?: string) => {
     throw new Error('NO_REFRESH_TOKEN');
   }
 
-  const res = await fetch(
-    `http://localhost:3000/api/v1/auth/refresh/${refreshTokenHash}`,
-    {
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-    }
-  );
+  const res = await fetch(`${API_BASE_URL}/auth/refresh/${refreshTokenHash}`, {
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+  });
 
   if (!res.ok) {
     const errorRes = await res.json();
@@ -30,18 +29,14 @@ const refreshFn = async (refreshTokenHash?: string) => {
   return result?.data?.accessToken ?? null;
 };
 
-export async function fetchWithRetry({
-  url,
-  options,
-  refreshTokenHash,
-}: FetchOptions) {
+export async function fetchWithRetry({ url, options, refreshTokenHash }: FetchOptions) {
   try {
-    let res = await fetch(`http://localhost:3000/api/v1/${url}`, options);
+    let res = await fetch(`${API_BASE_URL}/${url}`, options);
 
     if (res.status === 401) {
       const newAccessToken = await refreshFn(refreshTokenHash);
 
-      res = await fetch(`http://localhost:3000/api/v1/${url}`, {
+      res = await fetch(`${API_BASE_URL}/${url}`, {
         ...options,
         headers: {
           ...options?.headers,

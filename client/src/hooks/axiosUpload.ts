@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { refreshAccessToken } from '@/lib/refreshToken';
+import { API_BASE_URL } from '@/lib/config';
 
 export function useAxiosFetchFiles({ session }: { session: any }) {
   const [data, setData] = useState();
@@ -29,9 +30,7 @@ export function useAxiosFetchFiles({ session }: { session: any }) {
             Authorization: `Bearer ${token}`,
           },
           onUploadProgress: (progressEvent) => {
-            const progress = Math.round(
-              (progressEvent.loaded * 100) / (progressEvent.total || 1)
-            );
+            const progress = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
             setProgress(progress);
           },
           maxRedirects: 0,
@@ -48,9 +47,7 @@ export function useAxiosFetchFiles({ session }: { session: any }) {
         // If 401, try to refresh token and retry
         if ((error as AxiosError)?.response?.status === 401) {
           try {
-            const newAccessToken = await refreshAccessToken(
-              (session?.user as any)?.refreshTokenHash
-            );
+            const newAccessToken = await refreshAccessToken((session?.user as any)?.refreshTokenHash);
             if (newAccessToken) {
               response = await makeRequest(newAccessToken);
             } else {
@@ -71,8 +68,7 @@ export function useAxiosFetchFiles({ session }: { session: any }) {
     } catch (error: any) {
       setLoading(false);
       setProgress(0);
-      const errorMessage =
-        error?.response?.data?.message || 'Failed to upload file';
+      const errorMessage = error?.response?.data?.message || 'Failed to upload file';
       toast.error(errorMessage);
       throw error;
     }
@@ -104,9 +100,7 @@ export function useAxiosFileUpload({ session }: { session: any }) {
             Authorization: `Bearer ${token}`,
           },
           onUploadProgress: (progressEvent) => {
-            const progress = Math.round(
-              (progressEvent.loaded * 100) / (progressEvent.total || 1)
-            );
+            const progress = Math.round((progressEvent.loaded * 100) / (progressEvent.total || 1));
             setProgress(progress);
           },
           maxRedirects: 0,
@@ -123,9 +117,7 @@ export function useAxiosFileUpload({ session }: { session: any }) {
         // If 401, try to refresh token and retry
         if ((error as AxiosError)?.response?.status === 401) {
           try {
-            const newAccessToken = await refreshAccessToken(
-              (session?.user as any)?.refreshTokenHash
-            );
+            const newAccessToken = await refreshAccessToken((session?.user as any)?.refreshTokenHash);
             if (newAccessToken) {
               response = await makeRequest(newAccessToken);
             } else {
@@ -146,8 +138,7 @@ export function useAxiosFileUpload({ session }: { session: any }) {
     } catch (error: any) {
       setLoading(false);
       setProgress(0);
-      const errorMessage =
-        error?.response?.data?.message || 'Failed to upload file';
+      const errorMessage = error?.response?.data?.message || 'Failed to upload file';
       toast.error(errorMessage);
       throw error;
     }
@@ -168,15 +159,12 @@ export function useAxiosFileDelete({ session }: { session: any }) {
 
       const makeRequest = async (token: string) => {
         console.log('Making delete request......');
-        const response = await axios.delete(
-          `http://localhost:3000/api/v1/document/${id}`,
-          {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-              Authorization: `Bearer ${token}`,
-            },
-          }
-        );
+        const response = await axios.delete(`${API_BASE_URL}/document/${id}`, {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${token}`,
+          },
+        });
 
         console.log(response);
         return response;
@@ -189,9 +177,7 @@ export function useAxiosFileDelete({ session }: { session: any }) {
         // If 401, try to refresh token and retry
         if ((error as AxiosError)?.response?.status === 401) {
           try {
-            const newAccessToken = await refreshAccessToken(
-              (session?.user as any)?.refreshTokenHash
-            );
+            const newAccessToken = await refreshAccessToken((session?.user as any)?.refreshTokenHash);
             if (newAccessToken) {
               // Retry with new token
               response = await makeRequest(newAccessToken);
@@ -211,8 +197,7 @@ export function useAxiosFileDelete({ session }: { session: any }) {
       setDeleted(true);
     } catch (error: any) {
       console.log(error);
-      const errorMessage =
-        error?.response?.data?.message || 'Failed to delete file';
+      const errorMessage = error?.response?.data?.message || 'Failed to delete file';
       toast.error(errorMessage);
       setDeleted(false);
       throw error;

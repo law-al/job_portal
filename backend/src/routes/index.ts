@@ -9,6 +9,7 @@ import noteRoute from './note.route.js';
 import activityRoute from './activity.route.js';
 import statsRoute from './stats.route.js';
 import emailRoute from './email.route.js';
+import profileRoute from './profile.route.js';
 
 const rootRoute: Router = Router();
 
@@ -22,5 +23,6 @@ rootRoute.use('/note', noteRoute);
 rootRoute.use('/activity', activityRoute);
 rootRoute.use('/stats', statsRoute);
 rootRoute.use('/email', emailRoute);
+rootRoute.use('/profile', profileRoute);
 
 export default rootRoute;

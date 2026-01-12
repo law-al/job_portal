@@ -4,6 +4,7 @@ import SearchHeader from './components/SearchHeader';
 import JobListingsWrapper from './components/JobListingsWrapper';
 import Jobs from './components/Jobs';
 import type { JobSearchParams, GetAllJobsResponse } from '@/types';
+import { API_BASE_URL } from '@/lib/config';
 
 const normalizeJobType = (jobType?: string) => {
   if (!jobType) return undefined;
@@ -55,7 +56,7 @@ export default async function JobListings({ searchParams }: { searchParams: Prom
   };
 
   try {
-    const res = await fetch(`http://localhost:3000/api/v1/jobs/all${query ? `?${query}` : ''}`, {
+    const res = await fetch(`${API_BASE_URL}/jobs/all${query ? `?${query}` : ''}`, {
       cache: 'no-store',
     });
 

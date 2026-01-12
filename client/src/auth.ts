@@ -3,6 +3,7 @@ import NextAuth from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import GoogleProvider from 'next-auth/providers/google';
 import type { NextAuthOptions } from 'next-auth';
+import { API_BASE_URL } from './lib/config';
 
 async function refreshAccessToken(token: any) {
   try {
@@ -11,7 +12,7 @@ async function refreshAccessToken(token: any) {
       throw new Error('No refresh token available');
     }
 
-    const response = await fetch(`http://localhost:3000/api/v1/auth/refresh/${token.refreshTokenHash}`, {
+    const response = await fetch(`${API_BASE_URL}/auth/refresh/${token.refreshTokenHash}`, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -56,7 +57,7 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Email and password are required');
         }
         try {
-          const res = await fetch('http://localhost:3000/api/v1/auth/login', {
+          const res = await fetch(`${API_BASE_URL}/auth/login`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -93,7 +94,7 @@ export const authOptions: NextAuthOptions = {
       // OAuth provider (Google)
       if (account?.provider !== 'credentials') {
         try {
-          const res = await fetch('http://localhost:3000/api/v1/auth/oauth', {
+          const res = await fetch(`${API_BASE_URL}/auth/oauth`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
