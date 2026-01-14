@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import { protect } from '../middlewares/protect.js';
 import asyncHandler from '../utils/catchAsync.js';
-import { getProfile, updateProfile, updateProfileSection, checkProfileCompletion, deleteProfile } from '../controllers/profile.controller.js';
+import { getProfile, updateProfile, updateProfileSection, checkProfileCompletion, deleteProfile, updateProfileImage } from '../controllers/profile.controller.js';
+import upload from '../middlewares/multer.js';
 
 const profileRoute: Router = Router();
 
@@ -19,6 +20,9 @@ profileRoute.put('/', asyncHandler(updateProfile));
 
 // Update specific profile section
 profileRoute.patch('/section/:section', asyncHandler(updateProfileSection));
+
+// Update profile image
+profileRoute.post('/image', upload.single('image'), asyncHandler(updateProfileImage));
 
 // Delete profile
 profileRoute.delete('/', asyncHandler(deleteProfile));

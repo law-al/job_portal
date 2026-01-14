@@ -4,8 +4,8 @@ services:
     container_name: job-portal-db-local
     restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres123
+      POSTGRES_USER: nnnsns
+      POSTGRES_PASSWORD: lkalkslakslajlsja
       POSTGRES_DB: job_portal
     ports:
       - '5432:5432'
@@ -18,5 +18,21 @@ services:
       retries: 5
       start_period: 20s
 
+  # --- REDIS ADDED HERE ---
+  redis:
+    image: redis:7-alpine
+    container_name: job-portal-redis-local
+    restart: always
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data_local:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 volumes:
   postgres_data_local:
+  redis_data_local: # Added volume for Redis persistence

@@ -35,6 +35,7 @@ export const FindUserById = async (id: string) => {
 // NOTE: Register User
 export const RegisterUser = async (body: any) => {
   try {
+    console.log(body, 'the body');
     const validatedBody = RegisterSchema.parse(body);
 
     // Check if user already exists

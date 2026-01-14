@@ -1,11 +1,20 @@
 'use client';
 import { X } from 'lucide-react';
 import { Plus } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-export default function Skills() {
-  const [skills, setSkills] = useState<string[]>(['Figma', 'User Research', 'Prototyping', 'HTML/CSS', 'Design Systems']);
+interface SkillsProps {
+  skills?: string[];
+}
+
+export default function Skills({ skills: initialSkills = [] }: SkillsProps) {
+  const [skills, setSkills] = useState<string[]>(initialSkills);
   const [newSkill, setNewSkill] = useState('');
+
+  // Update skills when prop changes
+  useEffect(() => {
+    setSkills(initialSkills);
+  }, [initialSkills]);
 
   const addSkill = () => {
     if (newSkill.trim()) {

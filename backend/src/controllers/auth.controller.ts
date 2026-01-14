@@ -26,6 +26,9 @@ import { ErrorCodes } from '../exceptions/index.js';
 import { uploadToCloudinary } from '../utils/cloudinary.js';
 import generateTokens from '../utils/generateToken.js';
 import type { User } from '../generated/prisma/browser.js';
+import { emailQueue } from '../queues/email.queue.js';
+
+type JobName = 'verification' | 'forgot-password' | 'invite';
 
 // NOTE: Register Account
 export const register = async (req: Request, res: Response, next: NextFunction) => {
@@ -40,6 +43,9 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
   });
 
   const verifyToken = await GetVerifyEmailToken(newUser.id);
+
+  // queues
+  await emailQueue.add('verification' as JobName, { email: newUser.email, token: verifyToken });
 
   logger.info(`verification link has been sent successfully`);
 
@@ -57,9 +63,6 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
       refreshTokenHash,
     },
   });
-
-  await sendVerificationEmail(newUser.email, verifyToken);
-  console.log('email sent');
 };
 
 // NOTE: User login
@@ -129,6 +132,8 @@ export const registerUserCompany = async (req: Request, res: Response, next: Nex
 
   const verifyToken = await GetVerifyEmailToken(user.id);
 
+  await emailQueue.add('verification' as JobName, { email: user.email, token: verifyToken });
+
   logger.info(`verification link has been sent successfully`);
 
   res.status(201).json({
@@ -146,8 +151,6 @@ export const registerUserCompany = async (req: Request, res: Response, next: Nex
       refreshTokenHash,
     },
   });
-
-  await sendVerificationEmail(user.email, verifyToken);
 };
 
 export const oAuth = async (req: Request, res: Response, next: NextFunction) => {
@@ -208,15 +211,13 @@ export const reVerifyAccount = async (req: Request, res: Response, next: NextFun
   const user = await FindUserById(userId);
   if (user.isEmailVerified) throw new BadRequestException('User already verified', ErrorCodes.USER_ALREADY_VERIFIED);
   const verifyToken = await GetVerifyEmailToken(user.id);
+  await emailQueue.add('verification' as JobName, { email: user.email, token: verifyToken });
   logger.info(`verification link has been sent successfully`);
   res.status(200).json({
     success: true,
     message: 'User registered, proceed to verify email',
     data: { email: user.email, role: user.role },
   });
-
-  await sendVerificationEmail(user.email, verifyToken);
-  console.log('email sent');
 };
 
 // NOTE: Forgot Password
@@ -228,11 +229,12 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
   }
 
   const verifyToken = await GetVerifyPasswordToken(user.id);
+
+  await emailQueue.add('forgot-password' as JobName, { email: user.email, token: verifyToken });
+
   logger.info(`verification link has been sent successfully`);
 
   res.status(200).json({ success: true, message: 'password reset link sent' });
-
-  await sendForgetPasswordEmail(user.email, verifyToken);
 };
 
 // NOTE: Reset Password
@@ -256,9 +258,9 @@ export const resendPasswordResetLink = async (req: Request, res: Response, next:
 
   const token = await GetVerifyPasswordToken(user.id);
 
-  res.status(200).json({ success: true, message: 'password reset link sent' });
+  await emailQueue.add('forgot-password' as JobName, { email: user.email, token: verifyToken });
 
-  await sendForgetPasswordEmail(user.email, token);
+  res.status(200).json({ success: true, message: 'password reset link sent' });
 };
 
 // NOTE: Invite user
@@ -269,12 +271,12 @@ export const inviteUser = async (req: Request, res: Response, next: NextFunction
   const email = req.body.email;
   const role = (req.body.role as string).toUpperCase() as CompanyRole;
 
-  console.log(companyId);
-
   if (!email) throw new BadRequestException('An email must be provided', ErrorCodes.MISSING_REQUIRED_FIELD);
   if (!role) throw new BadRequestException('A role must be provided', ErrorCodes.MISSING_REQUIRED_FIELD);
   if (!companyId) throw new BadRequestException('A company ID must be provided', ErrorCodes.MISSING_COMPANY_ID);
   const { email: inviteeEmail, token, role: inviteeRole, companyName } = await InviteUser(email, role, companyId, userId);
+
+  await emailQueue.add('invite' as JobName, { email: inviteeEmail, token, companyName, role });
 
   logger.info(`Invitation sent to ${inviteeEmail} for company ${companyName} with role ${inviteeRole}`);
 
@@ -282,8 +284,6 @@ export const inviteUser = async (req: Request, res: Response, next: NextFunction
     success: true,
     message: 'Company invite has been sent',
   });
-
-  await sendInvitationEmail(inviteeEmail, token, companyName, role);
 };
 
 // NOTE: Check invite

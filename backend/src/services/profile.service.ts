@@ -11,6 +11,7 @@ import {
   EducationSchema,
   CertificationsSchema,
 } from '../models/profile.model.js';
+import { uploadProfileImageToCloudinary, deleteImageFromCloudinary } from '../utils/cloudinary.js';
 
 /**
  * Check if a profile is complete based on required fields
@@ -133,6 +134,7 @@ export const GetProfileByUserId = async (userId: string) => {
             email: true,
             firstName: true,
             lastName: true,
+            profileImage: true,
             isProfileCompleted: true,
             hasCompletedProfile: true,
           },
@@ -285,6 +287,64 @@ export const DeleteProfile = async (userId: string) => {
         hasCompletedProfile: false,
       },
     });
+  } catch (error) {
+    throw error;
+  }
+};
+
+/**
+ * Update user profile image
+ * @param userId - The user ID
+ * @param imageUrl - The Cloudinary image URL
+ * @returns Promise<User>
+ */
+export const UpdateProfileImage = async (userId: string, imageUrl: string) => {
+  try {
+    // Get current user to check if they have an existing profile image
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { profileImage: true },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found', ErrorCodes.NOT_FOUND);
+    }
+
+    // If user has an existing profile image, delete it from Cloudinary
+    /*
+    if (user.profileImage) {
+      try {
+        // Extract public_id from the Cloudinary URL
+        const urlParts = user.profileImage.split('/');
+        const fileName = urlParts[urlParts.length - 1].split('.')[0];
+        const folder = 'job-portal/user-profiles';
+        const publicId = `${folder}/${fileName}`;
+        await deleteImageFromCloudinary(publicId);
+      } catch (error) {
+        // Log error but don't fail the update
+        console.error('Error deleting old profile image:', error);
+      }
+    }
+    */
+
+    // Update user with new profile image
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        profileImage: imageUrl,
+      },
+      select: {
+        id: true,
+        email: true,
+        firstName: true,
+        lastName: true,
+        profileImage: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    });
+
+    return updatedUser;
   } catch (error) {
     throw error;
   }

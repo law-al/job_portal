@@ -20,6 +20,7 @@ interface Config {
   AwsRegion: string;
   AwsBucketName: string;
   OpenAiApiKey: string;
+  clientUrl: string;
 }
 
 const config: Config = {
@@ -40,6 +41,7 @@ const config: Config = {
   AwsRegion: process.env.AWS_REGION!,
   AwsBucketName: process.env.AWS_BUCKET_NAME!,
   OpenAiApiKey: process.env.OPENAI_API_KEY!,
+  clientUrl: process.env.FRONTEND_URL!,
 };
 
 export default config;

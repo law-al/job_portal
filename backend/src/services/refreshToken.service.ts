@@ -116,3 +116,15 @@ export const revokeAllUserTokens = async (userId: string) => {
     throw error;
   }
 };
+
+export const deleteExpiredTokens = async () => {
+  try {
+    const result = await RefreshToken.deleteMany({
+      expiresAt: { $lt: new Date() },
+    });
+    console.log(`Deleted ${result.deletedCount} expired tokens`);
+  } catch (error) {
+    logger.error('Error revoking all user tokens:', error);
+    throw error;
+  }
+};

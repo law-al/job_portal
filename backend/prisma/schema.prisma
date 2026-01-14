@@ -120,6 +120,7 @@ model User {
   passwordResetTokenExpiresAt     DateTime?
   emailVerificationToken          String?   @db.VarChar(255)
   emailVerificationTokenExpiresAt DateTime?
+  profileImage                    String?   @db.VarChar(500)
   createdAt                       DateTime  @default(now())
   updatedAt                       DateTime  @updatedAt
 
