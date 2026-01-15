@@ -1,5 +1,5 @@
 import { Redis } from 'ioredis';
-import redis, { type SetOptions } from 'redis';
+import redis, { type RedisArgument, type SetOptions } from 'redis';
 import config from '../config/config.js';
 import hash from 'object-hash';
 import logger from './logger.js';
@@ -9,6 +9,13 @@ interface SetOption {
   key: string;
   data: string;
   options?: SetOptions;
+}
+
+interface SetRateLimit {
+  script: RedisArgument;
+  key: RedisArgument;
+  limit: RedisArgument;
+  window: RedisArgument;
 }
 
 const { redisHostName, redisPort, redisURI } = config;
@@ -74,6 +81,24 @@ const getRedisData = async (key: string) => {
   }
 };
 
+const setRedisRateLimit = async ({ script, key, limit, window }: SetRateLimit) => {
+  if (redisIsOpen()) {
+    try {
+      const allowed = await redisClient.eval(script, {
+        keys: [key],
+        arguments: [limit, window],
+      });
+
+      return allowed;
+    } catch (error) {
+      console.log('Error from set redis limit function', error);
+      throw error;
+    }
+  }
+  // If Redis is not open, allow the request (fail open)
+  return 1;
+};
+
 const deleteRedisData = async (tag: string) => {
   if (redisIsOpen()) {
     try {
@@ -96,4 +121,4 @@ const connection = new Redis({
   maxRetriesPerRequest: null,
 });
 
-export { connection, connectRedis, redisIsOpen, setRedisData, getRedisData, deleteRedisData, requestToKey };
+export { connection, connectRedis, redisIsOpen, setRedisData, getRedisData, deleteRedisData, requestToKey, setRedisRateLimit };

@@ -12,11 +12,12 @@ import {
 } from '../controllers/application.controller.js';
 import { protect } from '../middlewares/protect.js';
 import { verifyCompanyMember } from '../middlewares/verifyCompanyMember.js';
+import { apiRateLimiter } from '../middlewares/ratelimit.middleware.js';
 
 const applicationRoute: Router = Router();
 
-// Public route - for job seekers to submit applications
-applicationRoute.post('/send', protect, upload.none(), asyncHandler(sendApplication));
+// Public route - for job seekers to submit applications (rate limited to prevent spam)
+applicationRoute.post('/send', protect, apiRateLimiter, upload.none(), asyncHandler(sendApplication));
 
 // User route - for job seekers to fetch their own applications
 // Must come before company routes to avoid route conflicts

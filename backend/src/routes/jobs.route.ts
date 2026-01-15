@@ -17,12 +17,13 @@ import {
   getJob,
 } from '../controllers/jobs.controller.js';
 import redisCacheMiddleware from '../middlewares/redis.middleware.js';
+import { publicRateLimiter } from '../middlewares/ratelimit.middleware.js';
 
 const jobsRoute: Router = Router();
 
-// Public routes - for job seekers
-jobsRoute.get('/all', redisCacheMiddleware({ EX: 300 }), asyncHandler(getAllJobs)); // 5 minutes TTL
-jobsRoute.get('/:slug', redisCacheMiddleware({ EX: 600 }), asyncHandler(getJob)); // 10 minutes TTL
+// Public routes - for job seekers (rate limited)
+jobsRoute.get('/all', publicRateLimiter, redisCacheMiddleware({ EX: 300 }), asyncHandler(getAllJobs)); // 5 minutes TTL
+jobsRoute.get('/:slug', publicRateLimiter, redisCacheMiddleware({ EX: 600 }), asyncHandler(getJob)); // 10 minutes TTL
 
 // GET routes - only need company membership verification
 jobsRoute.get('/:id/fetch', protect, verifyCompanyMember, redisCacheMiddleware({ EX: 20 }), asyncHandler(getCompanyJobs));
