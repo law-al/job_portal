@@ -3,6 +3,7 @@ import { protect } from '../middlewares/protect.js';
 import asyncHandler from '../utils/catchAsync.js';
 import { getProfile, updateProfile, updateProfileSection, checkProfileCompletion, deleteProfile, updateProfileImage } from '../controllers/profile.controller.js';
 import upload from '../middlewares/multer.js';
+import redisCacheMiddleware from '../middlewares/redis.middleware.js';
 
 const profileRoute: Router = Router();
 
@@ -10,10 +11,10 @@ const profileRoute: Router = Router();
 profileRoute.use(protect);
 
 // Get user profile
-profileRoute.get('/', asyncHandler(getProfile));
+profileRoute.get('/', redisCacheMiddleware({ EX: 300 }), asyncHandler(getProfile)); // 5 minutes TTL
 
 // Check profile completion status
-profileRoute.get('/completion', asyncHandler(checkProfileCompletion));
+profileRoute.get('/completion', redisCacheMiddleware({ EX: 300 }), asyncHandler(checkProfileCompletion)); // 5 minutes TTL
 
 // Create or update full profile
 profileRoute.put('/', asyncHandler(updateProfile));

@@ -21,6 +21,9 @@ interface Config {
   AwsBucketName: string;
   OpenAiApiKey: string;
   clientUrl: string;
+  redisHostName: string;
+  redisPort: string;
+  redisURI: string;
 }
 
 const config: Config = {
@@ -42,6 +45,9 @@ const config: Config = {
   AwsBucketName: process.env.AWS_BUCKET_NAME!,
   OpenAiApiKey: process.env.OPENAI_API_KEY!,
   clientUrl: process.env.FRONTEND_URL!,
+  redisHostName: process.env.REDIS_HOSTNAME!,
+  redisPort: process.env.REDIS_PORT!,
+  redisURI: process.env.REDIS_URI!,
 };
 
 export default config;

@@ -45,7 +45,17 @@ export const register = async (req: Request, res: Response, next: NextFunction) 
   const verifyToken = await GetVerifyEmailToken(newUser.id);
 
   // queues
-  await emailQueue.add('verification' as JobName, { email: newUser.email, token: verifyToken });
+  await emailQueue.add(
+    'verification' as JobName,
+    { email: newUser.email, token: verifyToken },
+    {
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 5000,
+      },
+    },
+  );
 
   logger.info(`verification link has been sent successfully`);
 
@@ -132,7 +142,17 @@ export const registerUserCompany = async (req: Request, res: Response, next: Nex
 
   const verifyToken = await GetVerifyEmailToken(user.id);
 
-  await emailQueue.add('verification' as JobName, { email: user.email, token: verifyToken });
+  await emailQueue.add(
+    'verification' as JobName,
+    { email: user.email, token: verifyToken },
+    {
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 5000,
+      },
+    },
+  );
 
   logger.info(`verification link has been sent successfully`);
 
@@ -211,7 +231,17 @@ export const reVerifyAccount = async (req: Request, res: Response, next: NextFun
   const user = await FindUserById(userId);
   if (user.isEmailVerified) throw new BadRequestException('User already verified', ErrorCodes.USER_ALREADY_VERIFIED);
   const verifyToken = await GetVerifyEmailToken(user.id);
-  await emailQueue.add('verification' as JobName, { email: user.email, token: verifyToken });
+  await emailQueue.add(
+    'verification' as JobName,
+    { email: user.email, token: verifyToken },
+    {
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 5000,
+      },
+    },
+  );
   logger.info(`verification link has been sent successfully`);
   res.status(200).json({
     success: true,
@@ -230,7 +260,17 @@ export const forgotPassword = async (req: Request, res: Response, next: NextFunc
 
   const verifyToken = await GetVerifyPasswordToken(user.id);
 
-  await emailQueue.add('forgot-password' as JobName, { email: user.email, token: verifyToken });
+  await emailQueue.add(
+    'forgot-password' as JobName,
+    { email: user.email, token: verifyToken },
+    {
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 5000,
+      },
+    },
+  );
 
   logger.info(`verification link has been sent successfully`);
 
@@ -276,7 +316,17 @@ export const inviteUser = async (req: Request, res: Response, next: NextFunction
   if (!companyId) throw new BadRequestException('A company ID must be provided', ErrorCodes.MISSING_COMPANY_ID);
   const { email: inviteeEmail, token, role: inviteeRole, companyName } = await InviteUser(email, role, companyId, userId);
 
-  await emailQueue.add('invite' as JobName, { email: inviteeEmail, token, companyName, role });
+  await emailQueue.add(
+    'invite' as JobName,
+    { email: inviteeEmail, token, companyName, role },
+    {
+      attempts: 3,
+      backoff: {
+        type: 'exponential',
+        delay: 5000,
+      },
+    },
+  );
 
   logger.info(`Invitation sent to ${inviteeEmail} for company ${companyName} with role ${inviteeRole}`);
 

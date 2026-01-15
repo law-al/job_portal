@@ -12,6 +12,7 @@ import {
   AssignApplicationToUser,
   RejectApplication,
 } from '../services/applications.service.js';
+import { deleteRedisData } from '../utils/redis.js';
 
 export const sendApplication = async (req: Request, res: Response, next: NextFunction) => {
   console.log('Entered');
@@ -19,6 +20,11 @@ export const sendApplication = async (req: Request, res: Response, next: NextFun
   const userId = (req.user as any).id;
 
   const results = await CreateApplication({ ...req.body, userId });
+
+  // Invalidate stats cache (applications count changes)
+  if (results?.companyId) {
+    await deleteRedisData('stats');
+  }
 
   // const result = await CreateJobApplication(req.body, resumes, supportingDocuments);
 
@@ -114,6 +120,9 @@ export const moveApplicationStage = async (req: Request, res: Response, next: Ne
 
     const updatedApplication = await MoveApplicationStage(applicationId, companyId, stageId, userId);
 
+    // Invalidate stats cache (application status might have changed)
+    await deleteRedisData('stats');
+
     // Check if status was automatically updated to OFFER
     const maxOrder = Math.max(...updatedApplication.job.pipelineStages.map((s) => s.order));
     const isFinalStage = updatedApplication.pipelineStage?.order === maxOrder;
@@ -177,6 +186,9 @@ export const rejectApplication = async (req: Request, res: Response, next: NextF
     }
 
     const updatedApplication = await RejectApplication(applicationId, companyId, userId);
+
+    // Invalidate stats cache (application status changed)
+    await deleteRedisData('stats');
 
     res.status(200).json({
       success: true,

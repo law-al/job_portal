@@ -1,5 +1,5 @@
 import { Worker } from 'bullmq';
-import connection from '../utils/redis.js';
+import { connection } from '../utils/redis.js';
 import { sendForgetPasswordEmail, sendInvitationEmail, sendVerificationEmail } from '../services/mail.service.js';
 import logger from '../utils/logger.js';
 

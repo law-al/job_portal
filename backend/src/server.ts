@@ -3,6 +3,7 @@ import config from './config/config.js';
 import cleanUpQueue from './queues/cleanUp.queue.js';
 import connectDB from './utils/connectMongoDb.js';
 import logger from './utils/logger.js';
+import { connectRedis } from './utils/redis.js';
 
 process.on('unhandledRejection', (err) => {
   console.error('Unhandled Promise Rejection:', err);
@@ -18,6 +19,7 @@ const startServer = async () => {
   try {
     // Connect to MongoDB first
     await connectDB();
+    await connectRedis();
 
     // Initialize the cleanup queue (schedules the recurring job)
     // This needs to run in the server process to schedule jobs

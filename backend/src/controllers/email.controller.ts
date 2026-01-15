@@ -2,6 +2,7 @@ import type { Response, Request, NextFunction } from 'express';
 import { CreateEmailTemplate, FindCompanyEmailTemplates, FindEmailTemplateById, UpdateEmailTemplate } from '../services/emailTemplate.service.js';
 import { BadRequestException, NotFoundException } from '../exceptions/exceptions.js';
 import { ErrorCodes } from '../exceptions/index.js';
+import { deleteRedisData } from '../utils/redis.js';
 
 export const createEmailTemplate = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -19,6 +20,9 @@ export const createEmailTemplate = async (req: Request, res: Response, next: Nex
     const body = req.body;
 
     const emailTemplate = await CreateEmailTemplate({ companyId, userId, body });
+
+    // Invalidate email template cache
+    await deleteRedisData(`email/${companyId}`);
 
     return res.status(201).json({
       success: true,
@@ -144,6 +148,9 @@ export const updateEmailTemplate = async (req: Request, res: Response, next: Nex
       userId,
       body,
     });
+
+    // Invalidate email template cache
+    await deleteRedisData(`email/${companyId}`);
 
     return res.status(200).json({
       success: true,

@@ -15,6 +15,7 @@ import {
   GetJobWithSimilar,
 } from '../services/jobs.service.js';
 import { ErrorCodes } from '../exceptions/index.js';
+import { deleteRedisData } from '../utils/redis.js';
 
 export const createJob = async (req: Request, res: Response, next: NextFunction) => {
   const { id: companyId } = req.params;
@@ -25,6 +26,11 @@ export const createJob = async (req: Request, res: Response, next: NextFunction)
     companyId: companyId,
     createdBy: userId,
   });
+
+  // Invalidate caches
+  await deleteRedisData('stats');
+  await deleteRedisData('jobs/all');
+  await deleteRedisData(`jobs/${companyId}/fetch`);
 
   res.status(201).json({
     success: true,
@@ -58,6 +64,12 @@ export const editJob = async (req: Request, res: Response, next: NextFunction) =
     createdBy: job.createdBy,
   });
 
+  // Invalidate caches
+  await deleteRedisData('stats');
+  await deleteRedisData('jobs/all');
+  await deleteRedisData(`jobs/${job.slug}`);
+  await deleteRedisData(`jobs/${companyId}/fetch`);
+
   res.status(200).json({
     success: true,
     message: 'job updated successfully',
@@ -87,6 +99,12 @@ export const closeJob = async (req: Request, res: Response, next: NextFunction) 
   }
 
   await CloseJob(job.id);
+
+  // Invalidate caches
+  await deleteRedisData('stats');
+  await deleteRedisData('jobs/all');
+  await deleteRedisData(`jobs/${job.slug}`);
+  await deleteRedisData(`jobs/${companyId}/fetch`);
 
   res.status(200).json({
     success: true,
@@ -118,6 +136,12 @@ export const openJob = async (req: Request, res: Response, next: NextFunction) =
   }
 
   await OpenJob(job.id);
+
+  // Invalidate caches
+  await deleteRedisData('stats');
+  await deleteRedisData('jobs/all');
+  await deleteRedisData(`jobs/${job.slug}`);
+  await deleteRedisData(`jobs/${companyId}/fetch`);
 
   res.status(200).json({
     success: true,
@@ -195,6 +219,12 @@ export const deleteJob = async (req: Request, res: Response, next: NextFunction)
   // }
 
   await DeleteJob(job.id);
+
+  // Invalidate caches
+  await deleteRedisData('stats');
+  await deleteRedisData('jobs/all');
+  await deleteRedisData(`jobs/${job.slug}`);
+  await deleteRedisData(`jobs/${companyId}/fetch`);
 
   res.status(200).json({
     success: true,

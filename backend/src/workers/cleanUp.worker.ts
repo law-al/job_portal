@@ -1,6 +1,6 @@
 import { Worker } from 'bullmq';
 import { deleteExpiredTokens } from '../services/refreshToken.service.js';
-import connection from '../utils/redis.js';
+import { connection } from '../utils/redis.js';
 
 type JobName = 'refresh-clean';
 

@@ -3,6 +3,7 @@ import { UpsertProfile, GetProfileByUserId, UpdateProfileSection, DeleteProfile,
 import { BadRequestException } from '../exceptions/exceptions.js';
 import { ErrorCodes } from '../exceptions/index.js';
 import { uploadProfileImageToCloudinary } from '../utils/cloudinary.js';
+import { deleteRedisData } from '../utils/redis.js';
 
 /**
  * Get user profile
@@ -50,6 +51,9 @@ export const updateProfile = async (req: Request, res: Response, next: NextFunct
 
     const profile = await UpsertProfile(userId, req.body);
 
+    // Invalidate profile cache
+    await deleteRedisData('profile');
+
     res.status(200).json({
       success: true,
       message: 'Profile updated successfully',
@@ -85,6 +89,9 @@ export const updateProfileSection = async (req: Request, res: Response, next: Ne
     }
 
     const profile = await UpdateProfileSection(userId, section, req.body);
+
+    // Invalidate profile cache
+    await deleteRedisData('profile');
 
     res.status(200).json({
       success: true,
@@ -134,6 +141,9 @@ export const deleteProfile = async (req: Request, res: Response, next: NextFunct
 
     await DeleteProfile(userId);
 
+    // Invalidate profile cache
+    await deleteRedisData('profile');
+
     res.status(200).json({
       success: true,
       message: 'Profile deleted successfully',
@@ -176,6 +186,9 @@ export const updateProfileImage = async (req: Request, res: Response, next: Next
 
     // Update user profile image
     const updatedUser = await UpdateProfileImage(userId, uploadResult.secure_url);
+
+    // Invalidate profile cache
+    await deleteRedisData('profile');
 
     res.status(200).json({
       success: true,
